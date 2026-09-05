@@ -13,8 +13,11 @@ import {
   ChevronRight,
   Zap,
   Activity,
-  Sparkles
+  Sparkles,
+  Coins,
+  ShieldCheck,
 } from 'lucide-react';
+import { useAuth } from '@/lib/firebase/authContext';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -52,6 +55,7 @@ const navItems = [
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
+  const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
@@ -141,19 +145,30 @@ export const Sidebar: React.FC = () => {
         })}
       </nav>
 
-      {/* System Status Footer */}
-      {!isCollapsed && (
-        <div className="p-4 mx-3 mb-4 rounded-xl glass-card-glow border border-synapse-cyan/20 bg-slate-900/80">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="text-xs font-semibold text-white tracking-wide">Cloud Run AI Active</span>
+      {/* User Token & Status Footer */}
+      {!isCollapsed ? (
+        <div className="p-4 mx-3 mb-4 rounded-xl glass-card-glow border border-synapse-cyan/20 bg-slate-900/80 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-xs font-semibold text-white tracking-wide">Cloud Run Active</span>
+            </div>
+            <span className="text-[10px] text-emerald-400 font-mono font-semibold">99.98% SLA</span>
           </div>
-          <p className="text-[11px] text-slate-400">
-            Firestore & RAG Vector Engine operating at 99.98% SLA
-          </p>
+
+          <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[11px]">
+            <span className="text-slate-400">Tokens Available:</span>
+            <span className="font-bold text-synapse-cyan">
+              {user?.tokenBalance ? (user.tokenBalance / 1000).toFixed(0) + 'k' : '850k'}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="p-3 mb-4 flex justify-center">
+          <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" title="Cloud Run Active" />
         </div>
       )}
     </aside>

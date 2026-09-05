@@ -3,11 +3,18 @@ import { SynapseAIEngine } from '@/lib/ai/synapseEngine';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const { transactions } = body;
+
     const result = await SynapseAIEngine.analyzeFraudDataset(transactions);
-    return NextResponse.json(result);
+    return NextResponse.json({
+      success: true,
+      ...result,
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Fraud Analysis Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Fraud Analysis Processing Error' },
+      { status: 500 }
+    );
   }
 }

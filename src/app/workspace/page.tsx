@@ -17,12 +17,16 @@ import {
   UploadCloud,
   CheckCircle2,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Download,
+  MessageSquare,
+  Coins,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { ChatMessage, AIModelId, AIModelSpec, SystemPromptPreset } from '@/types/workspace';
+import { useAuth } from '@/lib/firebase/authContext';
+import { ChatMessage, AIModelId, AIModelSpec, SystemPromptPreset, ConversationSession } from '@/types/workspace';
 import { DocumentItem } from '@/types/document';
 import { sampleDocuments } from '@/lib/mockData/documents';
 import { SynapseAIEngine } from '@/lib/ai/synapseEngine';
@@ -34,7 +38,7 @@ const models: AIModelSpec[] = [
     badge: 'Ultra Fast',
     description: 'Low-latency high throughput reasoning engine for real-time interaction.',
     contextWindow: '128k',
-    iconName: 'Zap'
+    iconName: 'Zap',
   },
   {
     id: 'synapse-pro-reasoning',
@@ -42,7 +46,7 @@ const models: AIModelSpec[] = [
     badge: 'Deep Logic',
     description: 'Complex multi-step chain-of-thought engine for enterprise strategic analysis.',
     contextWindow: '1M',
-    iconName: 'Brain'
+    iconName: 'Brain',
   },
   {
     id: 'synapse-vision-multimodal',
@@ -50,7 +54,7 @@ const models: AIModelSpec[] = [
     badge: 'Vision AI',
     description: 'Multimodal model capable of parsing diagrams, charts, and document layouts.',
     contextWindow: '256k',
-    iconName: 'Cpu'
+    iconName: 'Cpu',
   },
   {
     id: 'synapse-financial-analyst',
@@ -58,8 +62,8 @@ const models: AIModelSpec[] = [
     badge: 'Finance RAG',
     description: 'Trained specifically on financial ledgers, audit logs, and fraud vectoring.',
     contextWindow: '512k',
-    iconName: 'Shield'
-  }
+    iconName: 'Shield',
+  },
 ];
 
 const promptPresets: SystemPromptPreset[] = [
@@ -68,25 +72,56 @@ const promptPresets: SystemPromptPreset[] = [
     title: 'Financial Fraud Auditor',
     description: 'Analyze transactions for velocity surges and geo-mismatches.',
     prompt: 'Acts as a senior financial audit bot. Identify potential fraud risks in transaction data.',
-    category: 'finance'
+    category: 'finance',
   },
   {
     id: 'p2',
     title: 'Executive Summarizer',
     description: 'Distill documents into key decisions and action items.',
     prompt: 'Summarize the input text into executive bullet points, key decisions, and risks.',
-    category: 'summary'
+    category: 'summary',
   },
   {
     id: 'p3',
     title: 'Code Architect & Security',
     description: 'Review system architecture and Firestore security rules.',
     prompt: 'Review architecture for optimal Next.js, Cloud Run, and Firebase security.',
-    category: 'code'
-  }
+    category: 'code',
+  },
+  {
+    id: 'p4',
+    title: 'Contract SLA Evaluator',
+    description: 'Extract uptime commitments, penalties, and liability limits.',
+    prompt: 'Evaluate the attached agreement for uptime SLA clauses, service credits, and liability caps.',
+    category: 'finance',
+  },
+];
+
+const initialSessions: ConversationSession[] = [
+  {
+    id: 'sess-1',
+    title: 'Executive RAG & Cloud Scaling Strategy',
+    createdAt: '2026-09-05T08:30:00Z',
+    updatedAt: '2026-09-05T08:30:00Z',
+    messageCount: 3,
+    tags: ['Strategy', 'Compute'],
+    pinned: true,
+  },
+  {
+    id: 'sess-2',
+    title: 'Offshore Fraud Risk Inquest',
+    createdAt: '2026-09-04T15:20:00Z',
+    updatedAt: '2026-09-04T15:20:00Z',
+    messageCount: 5,
+    tags: ['Fraud', 'AML'],
+  },
 ];
 
 export default function AIWorkspacePage() {
+  const { deductTokens, user } = useAuth();
+  const [sessions, setSessions] = useState<ConversationSession[]>(initialSessions);
+  const [activeSessionId, setActiveSessionId] = useState<string>('sess-1');
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'm-init',
@@ -97,8 +132,8 @@ Welcome to the **Synapse RAG & Multimodal AI Studio**. You can ask complex enter
 
 How can I assist your productivity workflow today?`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      modelUsed: 'synapse-flash-v4'
-    }
+      modelUsed: 'synapse-flash-v4',
+    },
   ]);
   const [inputPrompt, setInputPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState<AIModelId>('synapse-flash-v4');
@@ -121,7 +156,7 @@ How can I assist your productivity workflow today?`,
       role: 'user',
       content: inputPrompt,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      attachments: attachedDocs.map((d) => ({ name: d.name, type: d.type, size: d.size }))
+      attachments: attachedDocs.map((d) => ({ name: d.name, type: d.type, size: d.size })),
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -136,13 +171,18 @@ How can I assist your productivity workflow today?`,
         attachedDocs
       );
 
+      // Deduct tokens from user balance
+      if (result.tokensConsumed) {
+        deductTokens(result.tokensConsumed);
+      }
+
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         role: 'assistant',
         content: result.responseText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         modelUsed: selectedModel,
-        ragCitations: result.citations
+        ragCitations: result.citations,
       };
 
       setMessages((prev) => [...prev, aiMsg]);
@@ -150,6 +190,38 @@ How can I assist your productivity workflow today?`,
       console.error(err);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleCreateNewThread = () => {
+    const newSession: ConversationSession = {
+      id: `sess-${Date.now()}`,
+      title: `Conversation ${sessions.length + 1}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      messageCount: 1,
+      tags: ['General'],
+    };
+
+    setSessions([newSession, ...sessions]);
+    setActiveSessionId(newSession.id);
+    setMessages([
+      {
+        id: `m-${Date.now()}`,
+        role: 'assistant',
+        content: `### ⚡ New Synapse AI Thread Initialized\n\nReady for your enterprise query with **${selectedModel.toUpperCase()}**.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        modelUsed: selectedModel,
+      },
+    ]);
+  };
+
+  const handleDeleteThread = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const remaining = sessions.filter((s) => s.id !== id);
+    setSessions(remaining);
+    if (activeSessionId === id && remaining.length > 0) {
+      setActiveSessionId(remaining[0].id);
     }
   };
 
@@ -162,7 +234,7 @@ How can I assist your productivity workflow today?`,
         size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
         type: file.name.endsWith('.pdf') ? 'pdf' : 'csv',
         uploadedAt: new Date().toISOString(),
-        content: 'Uploaded file contents indexed for RAG vector search.'
+        content: 'Uploaded file contents indexed for RAG vector search.',
       };
       setAttachedDocs((prev) => [...prev, newDoc]);
     }
@@ -174,15 +246,81 @@ How can I assist your productivity workflow today?`,
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const exportChatHistory = () => {
+    const chatText = messages
+      .map((m) => `[${m.timestamp}] ${m.role.toUpperCase()} (${m.modelUsed || 'user'}):\n${m.content}\n`)
+      .join('\n---\n\n');
+
+    const blob = new Blob([chatText], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Synapse_Chat_Export_${Date.now()}.md`;
+    a.click();
+  };
+
   return (
     <div className="h-[calc(100vh-5rem)] flex overflow-hidden">
+      {/* Left Chat Threads Sidebar */}
+      <div className="w-64 border-r border-slate-800/80 bg-slate-950/80 p-4 hidden lg:flex flex-col space-y-4 shrink-0">
+        <Button
+          onClick={handleCreateNewThread}
+          variant="primary"
+          size="sm"
+          className="w-full"
+          leftIcon={<Plus className="w-4 h-4" />}
+        >
+          New Conversation
+        </Button>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1.5">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block px-2">
+            Recent Threads ({sessions.length}):
+          </span>
+          {sessions.map((sess) => (
+            <div
+              key={sess.id}
+              onClick={() => setActiveSessionId(sess.id)}
+              className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${
+                activeSessionId === sess.id
+                  ? 'bg-synapse-cyan/15 border-synapse-cyan/40 text-white shadow-sm'
+                  : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <MessageSquare className="w-3.5 h-3.5 shrink-0 text-synapse-cyan" />
+                <span className="text-xs font-semibold truncate max-w-[130px]">{sess.title}</span>
+              </div>
+              <button
+                onClick={(e) => handleDeleteThread(sess.id, e)}
+                className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 p-1"
+                title="Delete thread"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Token Balance Footer */}
+        <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5 text-slate-400">
+            <Coins className="w-3.5 h-3.5 text-amber-400" />
+            <span>Balance:</span>
+          </div>
+          <span className="font-bold text-synapse-cyan">
+            {user?.tokenBalance ? user.tokenBalance.toLocaleString() : '850,000'}
+          </span>
+        </div>
+      </div>
+
       {/* Main Chat Workspace */}
-      <div className="flex-1 flex flex-col h-full bg-slate-950/60 relative">
+      <div className="flex-1 flex flex-col h-full bg-slate-950/60 relative min-w-0">
         {/* Model Bar Header */}
-        <div className="h-14 border-b border-slate-800/80 px-6 flex items-center justify-between bg-slate-950/80 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Model:</span>
-            <div className="flex items-center gap-2">
+        <div className="h-14 border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between bg-slate-950/80 backdrop-blur-md">
+          <div className="flex items-center gap-3 overflow-x-auto custom-scrollbar py-1">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0">Model:</span>
+            <div className="flex items-center gap-2 shrink-0">
               {models.map((m) => (
                 <button
                   key={m.id}
@@ -200,17 +338,26 @@ How can I assist your productivity workflow today?`,
             </div>
           </div>
 
-          <Badge variant="purple" size="sm">
-            RAG Vector Memory Active
-          </Badge>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={exportChatHistory}
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              title="Export Conversation"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+            <Badge variant="purple" size="sm" className="hidden sm:inline-flex">
+              RAG Vector Active
+            </Badge>
+          </div>
         </div>
 
         {/* Chat Message Scrollable Container */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar">
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex gap-4 max-w-4xl ${
+              className={`flex gap-3 sm:gap-4 max-w-4xl ${
                 msg.role === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto'
               }`}
             >
@@ -226,9 +373,9 @@ How can I assist your productivity workflow today?`,
               </div>
 
               {/* Bubble Body */}
-              <div className="space-y-2 max-w-2xl">
+              <div className="space-y-2 max-w-2xl min-w-0">
                 <div
-                  className={`p-5 rounded-2xl border text-sm leading-relaxed ${
+                  className={`p-4 sm:p-5 rounded-2xl border text-sm leading-relaxed ${
                     msg.role === 'user'
                       ? 'bg-purple-600/20 border-purple-500/40 text-slate-100 rounded-tr-none'
                       : 'glass-panel border-slate-800 text-slate-200 rounded-tl-none'
@@ -283,7 +430,7 @@ How can I assist your productivity workflow today?`,
             <div className="flex items-center gap-3 p-4 rounded-2xl glass-panel border-slate-800 max-w-sm">
               <div className="w-4 h-4 border-2 border-synapse-cyan border-t-transparent rounded-full animate-spin" />
               <span className="text-xs text-slate-300 font-medium animate-pulse">
-                Synapse Neural Engine computing response & indexing vector store...
+                Synapse Neural Engine computing reasoning chain...
               </span>
             </div>
           )}
@@ -295,7 +442,7 @@ How can I assist your productivity workflow today?`,
         <div className="p-4 border-t border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
           {/* Attached Document Chips */}
           {attachedDocs.length > 0 && (
-            <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1">
+            <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1 custom-scrollbar">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
                 Context RAG Docs:
               </span>
@@ -358,7 +505,7 @@ How can I assist your productivity workflow today?`,
       </div>
 
       {/* Right Sidebar: System Prompts & RAG Library */}
-      <div className="w-80 border-l border-slate-800/80 bg-slate-950/80 p-5 hidden xl:flex flex-col space-y-6 overflow-y-auto custom-scrollbar">
+      <div className="w-80 border-l border-slate-800/80 bg-slate-950/80 p-5 hidden xl:flex flex-col space-y-6 overflow-y-auto custom-scrollbar shrink-0">
         {/* Preset Prompts */}
         <div className="space-y-3">
           <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">

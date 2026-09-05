@@ -15,16 +15,20 @@ import {
   Globe,
   DollarSign,
   Zap,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck,
+  FileDown,
+  RefreshCw,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { FileDropzone } from '@/components/ui/FileDropzone';
-import { TransactionRecord, RiskSeverity } from '@/types/fraud';
+import { TransactionRecord, RiskSeverity, FraudAnalysisSummary } from '@/types/fraud';
 import { sampleTransactions, sampleFraudSummary } from '@/lib/mockData/transactions';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { SynapseAIEngine } from '@/lib/ai/synapseEngine';
 import {
   BarChart,
   Bar,
@@ -33,32 +37,105 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell
+  Cell,
 } from 'recharts';
 
 export default function FraudAnalysisPage() {
   const [transactions, setTransactions] = useState<TransactionRecord[]>(sampleTransactions);
+  const [summary, setSummary] = useState<FraudAnalysisSummary>(sampleFraudSummary);
   const [selectedTxn, setSelectedTxn] = useState<TransactionRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSeverity, setFilterSeverity] = useState<string>('ALL');
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadFileName, setUploadFileName] = useState<string | null>(null);
 
   const filteredTxns = transactions.filter((txn) => {
     const matchesSearch =
       txn.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       txn.accountSender.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      txn.senderLocation.toLowerCase().includes(searchQuery.toLowerCase());
+      txn.senderLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      txn.recipientLocation.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSeverity = filterSeverity === 'ALL' || txn.severity === filterSeverity;
-    return matchesSearch && matchesSeverity;
+    const matchesStatus = filterStatus === 'ALL' || txn.status === filterStatus;
+    return matchesSearch && matchesSeverity && matchesStatus;
   });
 
-  const handleFileUpload = (file: File) => {
+  const parseCSVContent = (text: string): TransactionRecord[] => {
+    const lines = text.split('\n').filter((l) => l.trim().length > 0);
+    if (lines.length < 2) return sampleTransactions;
+
+    const parsed: TransactionRecord[] = [];
+    // Skip header
+    for (let i = 1; i < lines.length; i++) {
+      const parts = lines[i].split(',').map((p) => p.trim().replace(/^"|"$/g, ''));
+      if (parts.length >= 4) {
+        const id = parts[0] || `TXN-CSV-${1000 + i}`;
+        const sender = parts[1] || 'ACC-Unknown';
+        const recipient = parts[2] || 'ACC-Recipient';
+        const amount = parseFloat(parts[3]) || Math.floor(Math.random() * 500000) + 10000;
+        const senderLoc = parts[4] || 'New York, US';
+        const recipientLoc = parts[5] || 'Zurich, CH';
+        const ip = parts[6] || '198.51.100.22';
+
+        parsed.push({
+          id,
+          timestamp: new Date().toISOString(),
+          accountSender: sender,
+          accountRecipient: recipient,
+          senderLocation: senderLoc,
+          recipientLocation: recipientLoc,
+          amount,
+          currency: 'USD',
+          merchantCategory: 'Financial Transfer',
+          deviceFingerprint: `DEV-FP-${i}`,
+          ipAddress: ip,
+          riskScore: amount > 500000 ? 92 : amount > 100000 ? 78 : 35,
+          severity: amount > 500000 ? 'CRITICAL' : amount > 100000 ? 'HIGH' : 'LOW',
+          flagReasons: [
+            amount > 500000 ? 'High-value threshold surge detected' : 'Standard transfer audit rule',
+          ],
+          status: amount > 500000 ? 'FLAGGED' : 'VERIFIED',
+          anomalyFactors: {
+            velocityFactor: amount > 500000 ? 5.2 : 1.2,
+            amountAnomaly: amount > 500000 ? 3.8 : 1.0,
+            geoMismatch: senderLoc !== recipientLoc,
+            knownBlacklistIP: amount > 500000,
+          },
+        });
+      }
+    }
+    return parsed.length > 0 ? parsed : sampleTransactions;
+  };
+
+  const handleFileUpload = async (file: File) => {
     setIsUploading(true);
-    setTimeout(() => {
+    setUploadFileName(file.name);
+
+    try {
+      const text = await file.text();
+      const parsedData = parseCSVContent(text);
+      const result = await SynapseAIEngine.analyzeFraudDataset(parsedData);
+      setTransactions(result.transactions);
+      setSummary(result.summary);
+    } catch (err) {
+      console.error('File parsing error:', err);
+      // Fallback to sample dataset
+      const res = await SynapseAIEngine.analyzeFraudDataset(sampleTransactions);
+      setTransactions(res.transactions);
+      setSummary(res.summary);
+    } finally {
       setIsUploading(false);
-      // Simulates ingested dataset with computed risk scores
-      setTransactions(sampleTransactions);
-    }, 1200);
+    }
+  };
+
+  const handleSelectPresetDataset = async () => {
+    setIsUploading(true);
+    setUploadFileName('August 2026 High-Velocity Wires.csv');
+    const result = await SynapseAIEngine.analyzeFraudDataset(sampleTransactions);
+    setTransactions(result.transactions);
+    setSummary(result.summary);
+    setIsUploading(false);
   };
 
   const getSeverityBadge = (severity: RiskSeverity) => {
@@ -75,24 +152,39 @@ export default function FraudAnalysisPage() {
   };
 
   const riskDistributionData = [
-    { name: 'Critical (90+)', count: sampleFraudSummary.criticalAlertCount, color: '#f43f5e' },
-    { name: 'High (75-89)', count: sampleFraudSummary.highRiskCount, color: '#f59e0b' },
-    { name: 'Medium (50-74)', count: sampleFraudSummary.mediumRiskCount, color: '#8b5cf6' },
-    { name: 'Low (<50)', count: sampleFraudSummary.lowRiskCount, color: '#10b981' },
+    { name: 'Critical (90+)', count: summary.criticalAlertCount, color: '#f43f5e' },
+    { name: 'High (75-89)', count: summary.highRiskCount, color: '#f59e0b' },
+    { name: 'Medium (50-74)', count: summary.mediumRiskCount, color: '#8b5cf6' },
+    { name: 'Low (<50)', count: summary.lowRiskCount, color: '#10b981' },
   ];
 
   const exportFraudPDFReport = () => {
     const reportText = `SYNAPSE ENTERPRISE FRAUD ANALYSIS AUDIT REPORT
+======================================================
 Generated: ${new Date().toLocaleString()}
-Processed Transactions: ${sampleFraudSummary.totalTransactions}
-Flagged Volume USD: ${formatCurrency(sampleFraudSummary.flaggedVolumeUSD)}
-Average Risk Score: ${sampleFraudSummary.averageRiskScore}
+Dataset: ${summary.datasetName}
+Processed Transactions: ${summary.totalTransactions}
+Total Analyzed Volume: ${formatCurrency(summary.totalVolumeUSD)}
+Flagged High-Risk Volume: ${formatCurrency(summary.flaggedVolumeUSD)}
+Average Risk Score: ${summary.averageRiskScore} / 100
 
-CRITICAL ANOMALIES IDENTIFIED:
-${sampleTransactions
-  .filter((t) => t.severity === 'CRITICAL')
-  .map((t) => `- ${t.id}: ${t.accountSender} -> ${t.accountRecipient} ($${t.amount.toLocaleString()}) [Score: ${t.riskScore}]`)
-  .join('\n')}`;
+RISK SEVERITY BREAKDOWN:
+- Critical Alerts (90+): ${summary.criticalAlertCount}
+- High Risk (75-89): ${summary.highRiskCount}
+- Medium Risk (50-74): ${summary.mediumRiskCount}
+- Low Risk (<50): ${summary.lowRiskCount}
+
+TOP FLAGGED TRANSACTIONS:
+${transactions
+  .filter((t) => t.severity === 'CRITICAL' || t.severity === 'HIGH')
+  .map(
+    (t) =>
+      `[${t.status}] ${t.id} - ${t.accountSender} -> ${t.accountRecipient} | Amount: $${t.amount.toLocaleString()} | Score: ${t.riskScore} (${t.severity}) | Flags: ${t.flagReasons.join('; ')}`
+  )
+  .join('\n\n')}
+
+COMPLIANCE DIRECTIVE:
+All CRITICAL transactions must undergo immediate identity re-verification before wire clearance.`;
 
     const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -102,8 +194,32 @@ ${sampleTransactions
     a.click();
   };
 
+  const exportCSVDataset = () => {
+    const headers = ['ID,Sender,Recipient,SenderLocation,RecipientLocation,Amount,RiskScore,Severity,Status'];
+    const rows = transactions.map(
+      (t) =>
+        `"${t.id}","${t.accountSender}","${t.accountRecipient}","${t.senderLocation}","${t.recipientLocation}",${t.amount},${t.riskScore},"${t.severity}","${t.status}"`
+    );
+    const csv = [...headers, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Synapse_Ledger_${Date.now()}.csv`;
+    a.click();
+  };
+
+  const updateTxnStatus = (id: string, newStatus: 'BLOCKED' | 'VERIFIED' | 'FLAGGED') => {
+    setTransactions((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, status: newStatus } : t))
+    );
+    if (selectedTxn && selectedTxn.id === id) {
+      setSelectedTxn({ ...selectedTxn, status: newStatus });
+    }
+  };
+
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
@@ -111,16 +227,19 @@ ${sampleTransactions
             <ShieldAlert className="w-4 h-4" />
             <span>AI Anomaly & Risk Detection Engine</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Fraud Analysis & Transaction Audit
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">
             Upload financial ledgers to compute risk scores, detect velocity anomalies, and uncover suspicious offshore entities.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button onClick={exportFraudPDFReport} variant="glow" leftIcon={<Download className="w-4 h-4" />}>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button onClick={exportCSVDataset} variant="secondary" size="sm" leftIcon={<FileDown className="w-4 h-4" />}>
+            Export CSV
+          </Button>
+          <Button onClick={exportFraudPDFReport} variant="glow" size="sm" leftIcon={<Download className="w-4 h-4" />}>
             Export Audit Report
           </Button>
         </div>
@@ -131,30 +250,32 @@ ${sampleTransactions
         <Card className="space-y-1">
           <span className="text-xs font-semibold text-slate-400 uppercase">Processed Volume</span>
           <p className="text-2xl font-extrabold text-white">
-            {formatCurrency(sampleFraudSummary.totalVolumeUSD)}
+            {formatCurrency(summary.totalVolumeUSD)}
           </p>
-          <span className="text-[11px] text-slate-400">{sampleFraudSummary.totalTransactions} transactions ingested</span>
+          <span className="text-[11px] text-slate-400">{summary.totalTransactions} transactions ingested</span>
         </Card>
 
         <Card className="space-y-1 border-rose-500/30 bg-rose-500/5">
           <span className="text-xs font-semibold text-rose-400 uppercase">High Risk Flagged</span>
           <p className="text-2xl font-extrabold text-rose-400">
-            {formatCurrency(sampleFraudSummary.flaggedVolumeUSD)}
+            {formatCurrency(summary.flaggedVolumeUSD)}
           </p>
-          <span className="text-[11px] text-slate-400">{sampleFraudSummary.criticalAlertCount} Critical Alerts</span>
+          <span className="text-[11px] text-slate-400">{summary.criticalAlertCount} Critical Alerts</span>
         </Card>
 
         <Card className="space-y-1">
           <span className="text-xs font-semibold text-slate-400 uppercase">Average Risk Score</span>
           <p className="text-2xl font-extrabold text-amber-400">
-            {sampleFraudSummary.averageRiskScore} <span className="text-sm text-slate-500">/ 100</span>
+            {summary.averageRiskScore} <span className="text-sm text-slate-500">/ 100</span>
           </p>
           <span className="text-[11px] text-slate-400">98.4% anomaly model precision</span>
         </Card>
 
         <Card className="space-y-1">
           <span className="text-xs font-semibold text-slate-400 uppercase">Blocked Attempts</span>
-          <p className="text-2xl font-extrabold text-emerald-400">18 Wires</p>
+          <p className="text-2xl font-extrabold text-emerald-400">
+            {transactions.filter((t) => t.status === 'BLOCKED').length} Wires
+          </p>
           <span className="text-[11px] text-slate-400">Auto-prevented fraud loss</span>
         </Card>
       </div>
@@ -170,6 +291,7 @@ ${sampleTransactions
 
           <FileDropzone
             onFileSelect={handleFileUpload}
+            currentFileName={uploadFileName || undefined}
             label="Upload CSV or Excel Ledger"
             sublabel="Auto-computes risk scores across 40 anomaly vectors"
           />
@@ -179,7 +301,7 @@ ${sampleTransactions
               Pre-loaded Enterprise Datasets:
             </span>
             <button
-              onClick={() => setTransactions(sampleTransactions)}
+              onClick={handleSelectPresetDataset}
               className="w-full text-left p-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-synapse-cyan/40 transition-colors flex items-center justify-between group"
             >
               <div>
@@ -233,19 +355,21 @@ ${sampleTransactions
 
       {/* Filterable Transactions Data Table */}
       <Card className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div>
             <h3 className="text-base font-bold text-white">Flagged Transactions Directory</h3>
-            <p className="text-xs text-slate-400">Line-by-line anomaly breakdown with flags & severity indicators</p>
+            <p className="text-xs text-slate-400">
+              Showing {filteredTxns.length} of {transactions.length} records
+            </p>
           </div>
 
-          {/* Search & Severity Filter Controls */}
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          {/* Search & Filter Controls */}
+          <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+            <div className="relative flex-1 sm:w-60">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input
                 type="text"
-                placeholder="Search TXN ID or Account..."
+                placeholder="Search TXN, Account, Loc..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
@@ -258,17 +382,29 @@ ${sampleTransactions
               className="bg-slate-900 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-synapse-cyan/50"
             >
               <option value="ALL">All Severities</option>
-              <option value="CRITICAL">Critical Only</option>
-              <option value="HIGH">High Risk</option>
-              <option value="MEDIUM">Medium Risk</option>
-              <option value="LOW">Low Risk</option>
+              <option value="CRITICAL">Critical (&gt;90)</option>
+              <option value="HIGH">High (75-89)</option>
+              <option value="MEDIUM">Medium (50-74)</option>
+              <option value="LOW">Low (&lt;50)</option>
+            </select>
+
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="bg-slate-900 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-synapse-cyan/50"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="FLAGGED">FLAGGED</option>
+              <option value="UNDER_REVIEW">UNDER REVIEW</option>
+              <option value="VERIFIED">VERIFIED</option>
+              <option value="BLOCKED">BLOCKED</option>
             </select>
           </div>
         </div>
 
         {/* Table View */}
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 <th className="py-3 px-4">Transaction ID</th>
@@ -376,21 +512,44 @@ ${sampleTransactions
                 <span className="text-slate-400">IP Routing:</span>
                 <span className="font-bold text-rose-400">{selectedTxn.ipAddress} (Tor/VPN Exit Node)</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Current Status:</span>
+                <span className="font-bold text-synapse-cyan">{selectedTxn.status}</span>
+              </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-2">
-              <Button variant="secondary" onClick={() => setSelectedTxn(null)}>
-                Close Inspection
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => {
-                  setTransactions(transactions.map(t => t.id === selectedTxn.id ? { ...t, status: 'BLOCKED' } : t));
-                  setSelectedTxn(null);
-                }}
-              >
-                Block Transaction Dispatch
-              </Button>
+            {/* Action Buttons */}
+            <div className="flex flex-wrap justify-between gap-2 pt-2 border-t border-slate-800">
+              <div className="flex gap-2">
+                <Button
+                  variant="glow"
+                  size="sm"
+                  onClick={() => updateTxnStatus(selectedTxn.id, 'VERIFIED')}
+                  leftIcon={<ShieldCheck className="w-3.5 h-3.5" />}
+                >
+                  Verify & Clear
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => updateTxnStatus(selectedTxn.id, 'FLAGGED')}
+                >
+                  Flag for Audit
+                </Button>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setSelectedTxn(null)}>
+                  Close
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => updateTxnStatus(selectedTxn.id, 'BLOCKED')}
+                >
+                  Block Dispatch
+                </Button>
+              </div>
             </div>
           </div>
         </Modal>

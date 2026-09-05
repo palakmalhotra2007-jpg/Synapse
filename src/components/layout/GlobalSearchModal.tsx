@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, ShieldAlert, Video, FileText, Bot, ArrowRight, X } from 'lucide-react';
+import { Search, ShieldAlert, Video, FileText, Bot, ArrowRight, X, Sparkles } from 'lucide-react';
 import { sampleTransactions } from '@/lib/mockData/transactions';
 import { sampleMeetings } from '@/lib/mockData/meetings';
 import { sampleDocuments } from '@/lib/mockData/documents';
@@ -21,9 +21,6 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         if (isOpen) onClose();
-        else {
-          // Open search logic handled in parent or global event
-        }
       }
       if (e.key === 'Escape' && isOpen) {
         onClose();
@@ -35,20 +32,27 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
 
   if (!isOpen) return null;
 
+  const normalizedQuery = query.toLowerCase().trim();
+
   const filteredTransactions = sampleTransactions.filter(
     (t) =>
-      t.id.toLowerCase().includes(query.toLowerCase()) ||
-      t.accountSender.toLowerCase().includes(query.toLowerCase()) ||
-      t.senderLocation.toLowerCase().includes(query.toLowerCase())
+      t.id.toLowerCase().includes(normalizedQuery) ||
+      t.accountSender.toLowerCase().includes(normalizedQuery) ||
+      t.senderLocation.toLowerCase().includes(normalizedQuery) ||
+      t.recipientLocation.toLowerCase().includes(normalizedQuery)
   );
 
   const filteredMeetings = sampleMeetings.filter((m) =>
-    m.title.toLowerCase().includes(query.toLowerCase())
+    m.title.toLowerCase().includes(normalizedQuery) ||
+    m.mom.executiveSummary.toLowerCase().includes(normalizedQuery) ||
+    m.mom.attendees.some((a) => a.toLowerCase().includes(normalizedQuery))
   );
 
-  const filteredDocuments = sampleDocuments.filter((d) =>
-    d.name.toLowerCase().includes(query.toLowerCase()) ||
-    d.summary?.toLowerCase().includes(query.toLowerCase())
+  const filteredDocuments = sampleDocuments.filter(
+    (d) =>
+      d.name.toLowerCase().includes(normalizedQuery) ||
+      d.summary?.toLowerCase().includes(normalizedQuery) ||
+      d.content.toLowerCase().includes(normalizedQuery)
   );
 
   const handleNavigate = (path: string) => {
@@ -56,8 +60,11 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
     onClose();
   };
 
+  const totalResults =
+    filteredTransactions.length + filteredMeetings.length + filteredDocuments.length;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-20 px-4">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-950/80 backdrop-blur-md animate-in fade-in"
@@ -65,37 +72,74 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
       />
 
       {/* Modal Container */}
-      <div className="relative w-full max-w-2xl glass-panel rounded-2xl border border-synapse-cyan/40 bg-slate-900/95 shadow-2xl overflow-hidden flex flex-col z-10 animate-in zoom-in-95">
+      <div className="relative w-full max-w-2xl glass-panel rounded-3xl border border-synapse-cyan/40 bg-slate-900/95 shadow-2xl overflow-hidden flex flex-col z-10 animate-in zoom-in-95">
         {/* Search Input Bar */}
-        <div className="flex items-center px-4 py-3 border-b border-slate-800/80">
+        <div className="flex items-center px-5 py-4 border-b border-slate-800/80">
           <Search className="w-5 h-5 text-synapse-cyan mr-3" />
           <input
             type="text"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search transactions, meetings, docs, or AI chats..."
+            placeholder="Search intelligence, transactions, MoMs, or contracts..."
             className="w-full bg-transparent text-white placeholder-slate-400 focus:outline-none text-base font-medium"
           />
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Quick Shortcut Buttons */}
+        <div className="px-4 py-2.5 bg-slate-950/60 border-b border-slate-800 flex items-center gap-2 overflow-x-auto text-xs">
+          <span className="text-slate-500 font-semibold shrink-0">Quick Modules:</span>
+          <button
+            onClick={() => handleNavigate('/workspace')}
+            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-slate-800 shrink-0"
+          >
+            AI Workspace
+          </button>
+          <button
+            onClick={() => handleNavigate('/fraud')}
+            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-rose-400 border border-slate-800 shrink-0"
+          >
+            Fraud Analysis
+          </button>
+          <button
+            onClick={() => handleNavigate('/meetings')}
+            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-purple-400 border border-slate-800 shrink-0"
+          >
+            Meeting MoM
+          </button>
+          <button
+            onClick={() => handleNavigate('/documents')}
+            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-emerald-400 border border-slate-800 shrink-0"
+          >
+            Doc Intelligence
+          </button>
+        </div>
+
         {/* Search Results Body */}
         <div className="p-4 overflow-y-auto max-h-[60vh] space-y-4 custom-scrollbar">
+          {totalResults === 0 && (
+            <div className="text-center py-10 text-slate-400 space-y-2">
+              <Search className="w-8 h-8 text-slate-600 mx-auto" />
+              <p className="text-sm font-semibold">No records match "{query}"</p>
+              <p className="text-xs text-slate-500">Try searching for "Cayman", "Cloud Run", "SLA", or "TXN"</p>
+            </div>
+          )}
+
           {/* Fraud Results */}
           {filteredTransactions.length > 0 && (
             <div>
               <div className="flex items-center gap-2 text-xs font-bold text-rose-400 uppercase tracking-wider mb-2 px-2">
                 <ShieldAlert className="w-3.5 h-3.5" />
-                <span>Fraud Anomaly Matches</span>
+                <span>Fraud Anomaly Matches ({filteredTransactions.length})</span>
               </div>
               <div className="space-y-1">
-                {filteredTransactions.map((txn) => (
+                {filteredTransactions.slice(0, 4).map((txn) => (
                   <div
                     key={txn.id}
                     onClick={() => handleNavigate('/fraud')}
@@ -104,7 +148,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-white text-sm">{txn.id}</span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                        <span className="text-xs px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 font-mono">
                           Risk: {txn.riskScore}
                         </span>
                       </div>
@@ -122,7 +166,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
             <div>
               <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2 px-2">
                 <Video className="w-3.5 h-3.5" />
-                <span>Meeting Intelligence Matches</span>
+                <span>Meeting Intelligence Matches ({filteredMeetings.length})</span>
               </div>
               <div className="space-y-1">
                 {filteredMeetings.map((m) => (
@@ -147,7 +191,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
             <div>
               <div className="flex items-center gap-2 text-xs font-bold text-purple-400 uppercase tracking-wider mb-2 px-2">
                 <FileText className="w-3.5 h-3.5" />
-                <span>Document Intelligence Matches</span>
+                <span>Document Intelligence Matches ({filteredDocuments.length})</span>
               </div>
               <div className="space-y-1">
                 {filteredDocuments.map((doc) => (

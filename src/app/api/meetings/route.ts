@@ -3,11 +3,18 @@ import { SynapseAIEngine } from '@/lib/ai/synapseEngine';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const { transcriptText } = body;
+
     const mom = await SynapseAIEngine.processMeetingSession(transcriptText);
-    return NextResponse.json({ mom });
+    return NextResponse.json({
+      success: true,
+      mom,
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Meeting Processing Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Meeting MoM Processing Error' },
+      { status: 500 }
+    );
   }
 }

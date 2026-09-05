@@ -16,13 +16,19 @@ import {
   Zap,
   Activity,
   ChevronRight,
-  Plus
+  Plus,
+  Filter,
+  User,
+  CheckSquare,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
+import { useAuth } from '@/lib/firebase/authContext';
 import { sampleDashboardMetrics, sampleActivityFeed } from '@/lib/mockData/dashboard';
 import { sampleMeetings } from '@/lib/mockData/meetings';
+import { ActionItem } from '@/types/meeting';
 import {
   AreaChart,
   Area,
@@ -31,23 +37,46 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar
 } from 'recharts';
 
-const usageChartData = [
-  { time: '08:00', queries: 2400, tokens: 42000 },
-  { time: '10:00', queries: 4800, tokens: 89000 },
-  { time: '12:00', queries: 8900, tokens: 164000 },
-  { time: '14:00', queries: 12400, tokens: 230000 },
-  { time: '16:00', queries: 9800, tokens: 185000 },
-  { time: '18:00', queries: 6200, tokens: 110000 },
-  { time: '20:00', queries: 3500, tokens: 68000 },
-];
+const chartDatasets = {
+  today: [
+    { time: '08:00', queries: 2400, tokens: 42000 },
+    { time: '10:00', queries: 4800, tokens: 89000 },
+    { time: '12:00', queries: 8900, tokens: 164000 },
+    { time: '14:00', queries: 12400, tokens: 230000 },
+    { time: '16:00', queries: 9800, tokens: 185000 },
+    { time: '18:00', queries: 6200, tokens: 110000 },
+    { time: '20:00', queries: 3500, tokens: 68000 },
+  ],
+  '7d': [
+    { time: 'Mon', queries: 45000, tokens: 850000 },
+    { time: 'Tue', queries: 52000, tokens: 980000 },
+    { time: 'Wed', queries: 61000, tokens: 1200000 },
+    { time: 'Thu', queries: 58000, tokens: 1150000 },
+    { time: 'Fri', queries: 72000, tokens: 1450000 },
+    { time: 'Sat', queries: 34000, tokens: 620000 },
+    { time: 'Sun', queries: 28000, tokens: 510000 },
+  ],
+  '30d': [
+    { time: 'Week 1', queries: 240000, tokens: 4800000 },
+    { time: 'Week 2', queries: 310000, tokens: 6200000 },
+    { time: 'Week 3', queries: 390000, tokens: 7800000 },
+    { time: 'Week 4', queries: 420000, tokens: 8400000 },
+  ],
+};
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [actionItems, setActionItems] = useState(sampleMeetings[0].mom.actionItems);
+  const { user } = useAuth();
+  const [timeframe, setTimeframe] = useState<'today' | '7d' | '30d'>('today');
+  const [actionItems, setActionItems] = useState<ActionItem[]>(sampleMeetings[0].mom.actionItems);
+  const [activityFilter, setActivityFilter] = useState<string>('all');
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskAssignee, setNewTaskAssignee] = useState(user?.displayName || 'Alex Sterling');
+  const [newTaskDeadline, setNewTaskDeadline] = useState('2026-09-12');
+  const [newTaskPriority, setNewTaskPriority] = useState<'HIGH' | 'MEDIUM' | 'LOW'>('HIGH');
 
   const toggleTaskStatus = (id: string) => {
     setActionItems((prev) =>
@@ -62,25 +91,55 @@ export default function DashboardPage() {
     );
   };
 
+  const handleAddNewTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+
+    const newItem: ActionItem = {
+      id: `act-${Date.now()}`,
+      title: newTaskTitle.trim(),
+      assignee: newTaskAssignee,
+      deadline: newTaskDeadline,
+      priority: newTaskPriority,
+      status: 'PENDING',
+      category: 'General',
+    };
+
+    setActionItems([newItem, ...actionItems]);
+    setNewTaskTitle('');
+    setIsAddTaskOpen(false);
+  };
+
+  const filteredActivities = sampleActivityFeed.filter(
+    (item) => activityFilter === 'all' || item.type === activityFilter
+  );
+
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
       {/* Hero Welcome Banner */}
-      <div className="relative overflow-hidden rounded-3xl p-8 bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-slate-950 border border-synapse-cyan/30 glass-card-glow shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-slate-950 border border-synapse-cyan/30 glass-card-glow shadow-2xl">
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-synapse-cyan/10 border border-synapse-cyan/30 rounded-full text-synapse-cyan text-xs font-semibold">
               <Sparkles className="w-3.5 h-3.5 animate-pulse" />
               <span>Synapse Intelligence OS v4.2 Active</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
-              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-synapse-cyan via-purple-400 to-pink-400">Alex Sterling</span>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+              Welcome back,{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-synapse-cyan via-purple-400 to-pink-400">
+                {user?.displayName || 'Alex Sterling'}
+              </span>
             </h1>
-            <p className="text-slate-300 text-sm md:text-base leading-relaxed">
-              Your unified AI intelligence engine has analyzed <strong className="text-synapse-cyan">184,920 queries</strong>, flagged <strong className="text-rose-400">18 critical financial anomalies</strong>, and updated <strong className="text-purple-400">3 executive meeting MoMs</strong> today.
+            <p className="text-slate-300 text-xs sm:text-sm md:text-base leading-relaxed">
+              Unified intelligence engine active for{' '}
+              <strong className="text-slate-100">{user?.organization || 'Aegis Global'}</strong>. Processed{' '}
+              <strong className="text-synapse-cyan">184,920 AI queries</strong>, flagged{' '}
+              <strong className="text-rose-400">18 financial anomalies</strong>, and indexed{' '}
+              <strong className="text-purple-400">1,284 enterprise contracts</strong>.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 w-full md:w-auto">
             <Button
               onClick={() => router.push('/workspace')}
               variant="primary"
@@ -142,7 +201,7 @@ export default function DashboardPage() {
         {/* Left 2 Columns: Usage & Infrastructure Analytics */}
         <div className="lg:col-span-2 space-y-8">
           <Card className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Activity className="w-5 h-5 text-synapse-cyan" />
@@ -150,12 +209,28 @@ export default function DashboardPage() {
                 </h3>
                 <p className="text-xs text-slate-400">Tokens consumed vs queries processed across Cloud Run nodes</p>
               </div>
-              <Badge variant="cyan">99.98% SLA Uptime</Badge>
+
+              {/* Timeframe Selector */}
+              <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs">
+                {(['today', '7d', '30d'] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTimeframe(t)}
+                    className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                      timeframe === t
+                        ? 'bg-synapse-cyan/20 text-synapse-cyan border border-synapse-cyan/30'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {t === 'today' ? 'Today' : t === '7d' ? '7 Days' : '30 Days'}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={usageChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <AreaChart data={chartDatasets[timeframe]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorQueries" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#00f2fe" stopOpacity={0.4} />
@@ -198,7 +273,7 @@ export default function DashboardPage() {
               <h4 className="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">
                 AI Workspace
               </h4>
-              <p className="text-xs text-slate-400 mt-1">RAG document Q&A & multimodal LLM streaming</p>
+              <p className="text-xs text-slate-400 mt-1">Multi-model RAG studio & prompt synthesis</p>
             </Link>
 
             <Link
@@ -211,7 +286,7 @@ export default function DashboardPage() {
               <h4 className="text-sm font-bold text-white group-hover:text-rose-400 transition-colors">
                 Fraud Analysis
               </h4>
-              <p className="text-xs text-slate-400 mt-1">Upload CSV transaction logs & score anomalies</p>
+              <p className="text-xs text-slate-400 mt-1">Ingest CSV ledgers & calculate risk vectors</p>
             </Link>
 
             <Link
@@ -224,7 +299,7 @@ export default function DashboardPage() {
               <h4 className="text-sm font-bold text-white group-hover:text-purple-400 transition-colors">
                 Meeting MoM
               </h4>
-              <p className="text-xs text-slate-400 mt-1">Transcribe audio & generate executive MoM</p>
+              <p className="text-xs text-slate-400 mt-1">Speech transcription & action item extraction</p>
             </Link>
           </div>
         </div>
@@ -236,14 +311,23 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>Pending Action Items</span>
+                <span>Action Items Tracker</span>
               </h3>
-              <Badge variant="amber" size="sm">
-                {actionItems.filter((i) => i.status !== 'COMPLETED').length} Due
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="amber" size="sm">
+                  {actionItems.filter((i) => i.status !== 'COMPLETED').length} Due
+                </Badge>
+                <button
+                  onClick={() => setIsAddTaskOpen(true)}
+                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white"
+                  title="Add Action Item"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 max-h-64 overflow-y-auto custom-scrollbar">
               {actionItems.map((item) => (
                 <div
                   key={item.id}
@@ -280,11 +364,28 @@ export default function DashboardPage() {
                 <Zap className="w-4 h-4 text-synapse-cyan" />
                 <span>Live Activity Stream</span>
               </h3>
-              <span className="text-[10px] text-slate-400">Real-Time Sync</span>
+              <span className="text-[10px] text-slate-400">Real-Time</span>
             </div>
 
-            <div className="space-y-3">
-              {sampleActivityFeed.map((item) => (
+            {/* Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[10px]">
+              {(['all', 'fraud', 'meeting', 'document', 'chat'] as const).map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActivityFilter(cat)}
+                  className={`px-2 py-0.5 rounded-full capitalize font-semibold transition-colors ${
+                    activityFilter === cat
+                      ? 'bg-synapse-cyan/20 text-synapse-cyan border border-synapse-cyan/30'
+                      : 'bg-slate-900 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-3 max-h-72 overflow-y-auto custom-scrollbar">
+              {filteredActivities.map((item) => (
                 <Link
                   key={item.id}
                   href={item.linkUrl}
@@ -302,7 +403,7 @@ export default function DashboardPage() {
                     <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">
                       {item.description}
                     </p>
-                    <span className="text-[9px] text-slate-400 mt-1 block">
+                    <span className="text-[9px] text-slate-500 mt-1 block">
                       {item.timestamp}
                     </span>
                   </div>
@@ -312,6 +413,59 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+
+      {/* Add Task Modal */}
+      <Modal
+        isOpen={isAddTaskOpen}
+        onClose={() => setIsAddTaskOpen(false)}
+        title="Create New Action Item"
+        maxWidth="md"
+      >
+        <form onSubmit={handleAddNewTask} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300">Task Title / Deliverable</label>
+            <input
+              type="text"
+              required
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              placeholder="e.g. Audit cloud database encryption keys"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300">Assignee</label>
+              <input
+                type="text"
+                value={newTaskAssignee}
+                onChange={(e) => setNewTaskAssignee(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300">Deadline</label>
+              <input
+                type="date"
+                value={newTaskDeadline}
+                onChange={(e) => setNewTaskDeadline(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="secondary" onClick={() => setIsAddTaskOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Create Item
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
