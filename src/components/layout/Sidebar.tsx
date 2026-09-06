@@ -20,6 +20,8 @@ import {
 import { useAuth } from '@/lib/firebase/authContext';
 import { cn } from '@/lib/utils';
 
+import { dispatchCompanionGuide } from '@/lib/ai/companionGuide';
+
 const navItems = [
   {
     name: 'Dashboard',
@@ -28,13 +30,7 @@ const navItems = [
     badge: undefined,
   },
   {
-    name: 'AI Workspace',
-    href: '/workspace',
-    icon: Bot,
-    badge: 'LLM RAG',
-  },
-  {
-    name: 'Fraud Analysis',
+    name: 'Omni Fraud Analysis',
     href: '/fraud',
     icon: ShieldAlert,
     badge: 'AI Shield',
@@ -43,13 +39,13 @@ const navItems = [
     name: 'Meeting Intelligence',
     href: '/meetings',
     icon: Video,
-    badge: 'MoM AI',
+    badge: 'Voice MoM',
   },
   {
     name: 'Document Intelligence',
     href: '/documents',
     icon: FileText,
-    badge: 'Doc Chat',
+    badge: 'Doc Vault',
   },
 ];
 
@@ -110,6 +106,12 @@ export const Sidebar: React.FC = () => {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => dispatchCompanionGuide(item.href, { speak: true })}
+              onMouseEnter={() => {
+                if (pathname !== item.href) {
+                  dispatchCompanionGuide(item.href, { speak: true });
+                }
+              }}
               className={cn(
                 'flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 group relative',
                 isActive
@@ -145,32 +147,30 @@ export const Sidebar: React.FC = () => {
         })}
       </nav>
 
-      {/* User Token & Status Footer */}
+      {/* System Status Footer (No Tokens Display) */}
       {!isCollapsed ? (
-        <div className="p-4 mx-3 mb-4 rounded-xl glass-card-glow border border-synapse-cyan/20 bg-slate-900/80 space-y-2.5">
+        <div className="p-4 mx-3 mb-4 rounded-xl glass-card-glow border border-synapse-cyan/20 bg-slate-900/80 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="text-xs font-semibold text-white tracking-wide">Cloud Run Active</span>
+              <span className="text-xs font-semibold text-white tracking-wide">Security Vault Active</span>
             </div>
             <span className="text-[10px] text-emerald-400 font-mono font-semibold">99.98% SLA</span>
           </div>
-
-          <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Tokens Available:</span>
-            <span className="font-bold text-synapse-cyan">
-              {user?.tokenBalance ? (user.tokenBalance / 1000).toFixed(0) + 'k' : '850k'}
-            </span>
+          <div className="pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+            <span>Department:</span>
+            <span className="text-slate-200 font-semibold truncate max-w-[110px]">{user?.teamName || 'Executive'}</span>
           </div>
         </div>
       ) : (
         <div className="p-3 mb-4 flex justify-center">
-          <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" title="Cloud Run Active" />
+          <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" title="Security Vault Active" />
         </div>
       )}
     </aside>
   );
 };
+

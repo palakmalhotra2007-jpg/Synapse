@@ -4,9 +4,9 @@ import { SynapseAIEngine } from '@/lib/ai/synapseEngine';
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { transcriptText } = body;
+    const { transcriptText, participants } = body;
 
-    const mom = await SynapseAIEngine.processMeetingSession(transcriptText);
+    const mom = await SynapseAIEngine.processMeetingSession(transcriptText, participants);
     return NextResponse.json({
       success: true,
       mom,

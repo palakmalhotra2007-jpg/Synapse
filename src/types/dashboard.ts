@@ -1,3 +1,23 @@
+export type TeamId =
+  | 'engineering'
+  | 'fraud_security'
+  | 'finance_risk'
+  | 'legal_compliance'
+  | 'executive_ops'
+  | 'product_growth';
+
+export interface Team {
+  id: TeamId;
+  name: string;
+  code: string;
+  badgeVariant: 'cyan' | 'purple' | 'rose' | 'emerald' | 'amber' | 'blue';
+  description: string;
+  lead: string;
+  memberCount: number;
+  documentCount: number;
+  permissions: string[];
+}
+
 export interface DashboardMetric {
   id: string;
   title: string;
@@ -17,14 +37,25 @@ export interface ActivityFeedItem {
   badgeText: string;
   badgeVariant: 'cyan' | 'purple' | 'rose' | 'emerald' | 'amber';
   linkUrl: string;
+  teamId?: TeamId;
 }
 
 export interface UserProfile {
   uid: string;
   displayName: string;
   email: string;
-  photoURL?: string;
+  employeeId: string;
+  teamId: TeamId;
+  teamName: string;
+  department: string;
   role: string;
   organization: string;
+  photoURL?: string;
   tokenBalance: number;
+  faceBiometricEnrolled?: boolean;
+  faceVectorId?: string;
+  faceConfidence?: number;
+  lastBiometricScan?: string;
+  permissions?: string[];
 }
+

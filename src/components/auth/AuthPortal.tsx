@@ -4,9 +4,6 @@ import React, { useState } from 'react';
 import {
   Zap,
   Shield,
-  Bot,
-  Video,
-  FileText,
   Lock,
   Mail,
   User,
@@ -16,23 +13,36 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  KeyRound,
   ShieldCheck,
+  Scan,
+  Fingerprint,
+  Users,
+  Building,
+  Plus,
 } from 'lucide-react';
 import { useAuth } from '@/lib/firebase/authContext';
-import { INITIAL_USERS } from '@/lib/auth/usersDb';
+import { TEAMS_LIST, StoredUser, getStoredUsers } from '@/lib/auth/usersDb';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { FaceRecognitionModal } from './FaceRecognitionModal';
+import { TeamId } from '@/types/dashboard';
 
 export const AuthPortal: React.FC = () => {
   const { login, register, loginWithPersona } = useAuth();
   const [tab, setTab] = useState<'login' | 'register'>('login');
+  const [authMethod, setAuthMethod] = useState<'password' | 'fingerprint' | 'face'>('password');
+  const [isFaceModalOpen, setIsFaceModalOpen] = useState(false);
+  const [isFingerprintScanning, setIsFingerprintScanning] = useState(false);
 
   // Form states
   const [email, setEmail] = useState('alex.sterling@synapse-ai.io');
   const [password, setPassword] = useState('Synapse#2026');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('Chief Technology Officer');
+  const [selectedTeam, setSelectedTeam] = useState<string>('engineering');
+  const [isCreatingNewTeam, setIsCreatingNewTeam] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [newDepartmentName, setNewDepartmentName] = useState('');
+  const [role, setRole] = useState('Senior AI Systems Engineer');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -48,16 +58,17 @@ export const AuthPortal: React.FC = () => {
       if (tab === 'login') {
         const res = await login(email, password);
         if (!res.success) {
-          setErrorMessage(res.error || 'Invalid credentials.');
+          setErrorMessage(res.error || 'Invalid corporate credentials.');
         } else {
-          setSuccessMessage('Authentication verified. Welcome to Synapse!');
+          setSuccessMessage('Authentication verified. Welcome to Synapse.');
         }
       } else {
-        const res = await register(name, email, password, role);
+        const finalTeamId = isCreatingNewTeam ? (newTeamName.toLowerCase().replace(/\s+/g, '_') as TeamId) : (selectedTeam as TeamId);
+        const res = await register(name, email, password, finalTeamId, role);
         if (!res.success) {
           setErrorMessage(res.error || 'Registration failed.');
         } else {
-          setSuccessMessage('Account provisioned successfully!');
+          setSuccessMessage('Employee account provisioned and biometric clearance registered.');
         }
       }
     } catch (err: any) {
@@ -67,22 +78,29 @@ export const AuthPortal: React.FC = () => {
     }
   };
 
-  const handleSelectPersona = (persona: typeof INITIAL_USERS[0]) => {
-    setEmail(persona.email);
-    setPassword(persona.passwordHash);
-    setRole(persona.role);
+  const handleFingerprintScan = () => {
+    setIsFingerprintScanning(true);
     setErrorMessage(null);
-    loginWithPersona(persona.uid);
+
+    setTimeout(async () => {
+      setIsFingerprintScanning(false);
+      // Auto-authenticate default user
+      const defaultUser = getStoredUsers()[0];
+      if (defaultUser) {
+        loginWithPersona(defaultUser.uid);
+        setSuccessMessage('Fingerprint biometric vector verified.');
+      }
+    }, 1600);
   };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 relative z-20">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        {/* Left Column: Brand Hero & Value Proposition */}
-        <div className="lg:col-span-6 space-y-6 text-left">
+        {/* Left Column: Platform Branding & Multi-Biometric Pillars */}
+        <div className="lg:col-span-5 space-y-6 text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-synapse-cyan/10 border border-synapse-cyan/30 text-synapse-cyan text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-            <span>Synapse Enterprise AI Platform v4.2</span>
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Synapse Enterprise Security OS • Multi-Biometric Clearance</span>
           </div>
 
           <div className="space-y-3">
@@ -102,87 +120,62 @@ export const AuthPortal: React.FC = () => {
               </div>
             </div>
 
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-lg">
-              Unified intelligence engine providing real-time multimodal RAG reasoning, automated financial fraud vectoring, speech-to-MoM synthesis, and contract diff intelligence.
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              Authenticate using your facial biometrics, fingerprint sensor, or corporate credentials to access cross-document intelligence, fraud audit matrix, and meeting minutes synthesis.
             </p>
           </div>
 
-          {/* Core Feature Pillars */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <div className="p-3.5 rounded-xl glass-panel border-slate-800 space-y-1">
-              <div className="flex items-center gap-2 text-cyan-400 font-semibold text-xs">
-                <Bot className="w-4 h-4" />
-                <span>AI Workspace</span>
-              </div>
-              <p className="text-[11px] text-slate-400">RAG Document Q&A with 1M+ context window</p>
-            </div>
+          {/* Biometric Verification Methods Card */}
+          <div className="space-y-2.5 p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+              Supported Authentication Channels:
+            </span>
 
-            <div className="p-3.5 rounded-xl glass-panel border-slate-800 space-y-1">
-              <div className="flex items-center gap-2 text-rose-400 font-semibold text-xs">
-                <Shield className="w-4 h-4" />
-                <span>Fraud Anomaly</span>
-              </div>
-              <p className="text-[11px] text-slate-400">Ledger auditing with 40+ risk vectors</p>
-            </div>
-
-            <div className="p-3.5 rounded-xl glass-panel border-slate-800 space-y-1">
-              <div className="flex items-center gap-2 text-purple-400 font-semibold text-xs">
-                <Video className="w-4 h-4" />
-                <span>Meeting MoM</span>
-              </div>
-              <p className="text-[11px] text-slate-400">Speech-to-text with auto action items</p>
-            </div>
-
-            <div className="p-3.5 rounded-xl glass-panel border-slate-800 space-y-1">
-              <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs">
-                <FileText className="w-4 h-4" />
-                <span>Doc Intelligence</span>
-              </div>
-              <p className="text-[11px] text-slate-400">Key clause parsing & contract diffs</p>
-            </div>
-          </div>
-
-          {/* Quick Demo Persona Switcher */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-synapse-cyan" />
-                <span>Instant Demo Personas (1-Click Login):</span>
-              </span>
-              <span className="text-[10px] text-synapse-cyan font-mono">Zero Setup Required</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {INITIAL_USERS.map((persona) => (
-                <button
-                  key={persona.uid}
-                  type="button"
-                  onClick={() => handleSelectPersona(persona)}
-                  className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-synapse-cyan/50 hover:bg-slate-900 text-left transition-all group"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <img
-                      src={persona.photoURL}
-                      alt={persona.displayName}
-                      className="w-8 h-8 rounded-lg object-cover border border-slate-700 group-hover:border-synapse-cyan"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-white truncate group-hover:text-synapse-cyan">
-                        {persona.displayName.split(' ')[0]}
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate">
-                        {persona.role.split(' ')[0]}
-                      </div>
-                    </div>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setIsFaceModalOpen(true)}
+                className="w-full p-3 rounded-xl bg-slate-950 border border-synapse-cyan/30 hover:border-synapse-cyan text-left text-xs text-white transition-all flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-synapse-cyan/10 text-synapse-cyan">
+                    <Scan className="w-4 h-4 group-hover:scale-110 transition-transform" />
                   </div>
-                </button>
-              ))}
+                  <div>
+                    <strong className="block text-white">Live Face Recognition Scan</strong>
+                    <span className="text-[10px] text-slate-400">Camera vector matching against biometric vault</span>
+                  </div>
+                </div>
+                <Badge variant="cyan" size="sm">Camera Scan</Badge>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleFingerprintScan}
+                disabled={isFingerprintScanning}
+                className="w-full p-3 rounded-xl bg-slate-950 border border-purple-500/30 hover:border-purple-400 text-left text-xs text-white transition-all flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+                    <Fingerprint className={`w-4 h-4 ${isFingerprintScanning ? 'animate-pulse text-synapse-cyan' : ''}`} />
+                  </div>
+                  <div>
+                    <strong className="block text-white">
+                      {isFingerprintScanning ? 'Scanning Sensor...' : 'Fingerprint / Touch Biometrics'}
+                    </strong>
+                    <span className="text-[10px] text-slate-400">Hardware token or biometric touch sensor</span>
+                  </div>
+                </div>
+                <Badge variant="purple" size="sm">
+                  {isFingerprintScanning ? 'Verifying...' : 'Touch ID'}
+                </Badge>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Interactive Login / Register Form */}
-        <div className="lg:col-span-6">
+        {/* Right Column: Credential Authentication & Dynamic Team Provisioning Form */}
+        <div className="lg:col-span-7">
           <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-synapse-cyan/30 shadow-2xl relative bg-slate-950/80 backdrop-blur-2xl">
             {/* Header Tabs */}
             <div className="flex items-center gap-2 p-1 bg-slate-900/90 rounded-2xl border border-slate-800 mb-6">
@@ -198,7 +191,7 @@ export const AuthPortal: React.FC = () => {
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Sign In to Platform
+                Sign In with Credentials
               </button>
               <button
                 type="button"
@@ -212,7 +205,7 @@ export const AuthPortal: React.FC = () => {
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Provision Account
+                Create Account & Department
               </button>
             </div>
 
@@ -237,29 +230,80 @@ export const AuthPortal: React.FC = () => {
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5 text-synapse-cyan" />
-                      <span>Full Name</span>
+                      <span>Full Employee Name</span>
                     </label>
                     <input
                       type="text"
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Jordan Lee"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                      placeholder="e.g. Jordan Sterling"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
                     />
+                  </div>
+
+                  {/* Team & Department Creation Options */}
+                  <div className="space-y-2 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <Building className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Team & Department Assignment</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsCreatingNewTeam(!isCreatingNewTeam)}
+                        className="text-[11px] text-synapse-cyan hover:underline font-bold flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>{isCreatingNewTeam ? 'Select Existing Team' : 'Create New Team'}</span>
+                      </button>
+                    </div>
+
+                    {!isCreatingNewTeam ? (
+                      <select
+                        value={selectedTeam}
+                        onChange={(e) => setSelectedTeam(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
+                      >
+                        {TEAMS_LIST.map((team) => (
+                          <option key={team.id} value={team.id}>
+                            {team.name} ({team.code}) • {team.lead}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                        <input
+                          type="text"
+                          required
+                          value={newTeamName}
+                          onChange={(e) => setNewTeamName(e.target.value)}
+                          placeholder="New Team Name (e.g. Risk Ops)"
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                        />
+                        <input
+                          type="text"
+                          required
+                          value={newDepartmentName}
+                          onChange={(e) => setNewDepartmentName(e.target.value)}
+                          placeholder="Department (e.g. Corporate Finance)"
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-                      <span>Role & Function</span>
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Role / Designation</span>
                     </label>
                     <input
                       type="text"
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
                       placeholder="e.g. Senior Security Specialist"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
                     />
                   </div>
                 </>
@@ -275,8 +319,8 @@ export const AuthPortal: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.io"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                  placeholder="alex.sterling@synapse-ai.io"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
                 />
               </div>
 
@@ -288,7 +332,7 @@ export const AuthPortal: React.FC = () => {
                   </label>
                   {tab === 'login' && (
                     <span className="text-[10px] text-synapse-cyan cursor-pointer hover:underline">
-                      Demo: Synapse#2026
+                      Default: Synapse#2026
                     </span>
                   )}
                 </div>
@@ -299,7 +343,7 @@ export const AuthPortal: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-4 pr-11 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-4 pr-11 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
                   />
                   <button
                     type="button"
@@ -318,20 +362,27 @@ export const AuthPortal: React.FC = () => {
                 className="w-full py-3 mt-2"
                 rightIcon={<ArrowRight className="w-4 h-4" />}
               >
-                {tab === 'login' ? 'Authenticate & Enter' : 'Create Enterprise Account'}
+                {tab === 'login' ? 'Authenticate & Enter' : 'Provision Employee Account'}
               </Button>
 
               <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-[11px] text-slate-400">
                 <span className="flex items-center gap-1 text-emerald-400">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>256-Bit Firestore Encrypted</span>
+                  <span>AES-256 Biometric Vault</span>
                 </span>
-                <span>SOC2 Type II Certified</span>
+                <span>SOC2 Type II Clearance</span>
               </div>
             </form>
           </div>
         </div>
       </div>
+
+      {/* Face Recognition Biometric Modal */}
+      <FaceRecognitionModal
+        isOpen={isFaceModalOpen}
+        onClose={() => setIsFaceModalOpen(false)}
+        mode="login"
+      />
     </div>
   );
 };

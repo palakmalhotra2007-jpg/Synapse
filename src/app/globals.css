@@ -94,3 +94,74 @@ code, kbd, samp, pre {
   background-size: 200% 100%;
   animation: shimmer 1.8s infinite;
 }
+
+/* Live Anime Character Animations */
+@keyframes idleBreathing {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.02);
+  }
+}
+
+@keyframes speakingBob {
+  0%, 100% {
+    transform: translateY(0px) scale(1.02);
+  }
+  25% {
+    transform: translateY(-4px) scale(1.03) rotate(-0.8deg);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.02) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-5px) scale(1.035) rotate(0.8deg);
+  }
+}
+
+@keyframes mouthSync {
+  0%, 100% {
+    height: 3px;
+    width: 8px;
+    border-radius: 4px;
+    opacity: 0.6;
+  }
+  50% {
+    height: 9px;
+    width: 12px;
+    border-radius: 6px;
+    opacity: 1;
+  }
+}
+
+@keyframes eyeBlink {
+  0%, 94%, 100% {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  96%, 98% {
+    opacity: 0.95;
+    transform: scaleY(1);
+  }
+}
+
+.animate-idle-breathing {
+  animation: idleBreathing 3.5s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.animate-speaking-live {
+  animation: speakingBob 0.65s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.animate-mouth-sync {
+  animation: mouthSync 0.14s ease-in-out infinite alternate;
+}
+
+.animate-eye-blink {
+  animation: eyeBlink 3.8s infinite;
+}
+
+

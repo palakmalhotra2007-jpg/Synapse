@@ -1,13 +1,24 @@
+import { TeamId } from './dashboard';
+
+export type DocumentAccessLevel = 'PUBLIC' | 'TEAM_ONLY' | 'CONFIDENTIAL' | 'RESTRICTED';
+
 export interface DocumentItem {
   id: string;
   name: string;
   size: string;
-  type: 'pdf' | 'docx' | 'csv' | 'txt' | 'md';
+  type: 'pdf' | 'docx' | 'csv' | 'txt' | 'md' | 'json' | 'xlsx' | 'img';
   uploadedAt: string;
+  teamId?: TeamId | 'all';
+  teamName?: string;
+  uploadedBy?: string;
+  uploadedByEmployeeId?: string;
+  accessLevel?: DocumentAccessLevel;
   pageCount?: number;
   wordCount?: number;
   content: string;
   summary?: string;
+  tags?: string[];
+  sensitivityScore?: number; // 0 - 100
   keyClauses?: {
     type: 'obligation' | 'liability' | 'financial' | 'compliance' | 'risk';
     title: string;

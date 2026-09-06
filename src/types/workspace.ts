@@ -26,6 +26,8 @@ export interface ChatMessage {
     documentTitle: string;
     snippet: string;
     relevanceScore: number;
+    uploadedBy?: string;
+    teamName?: string;
   }[];
 }
 
