@@ -477,10 +477,10 @@ export const RiggedAnimeCharacter: React.FC<RiggedAnimeCharacterProps> = ({
       // LAYER 9: Live Animated Anime Eyes & Gaze Tracking
       // Left eye center: (240, 134), Right eye center: (318, 134)
       // -----------------------------------------------------------------------
-      const gazeOffsetX = lookX * 3.5;
-      const gazeOffsetY = lookY * 2.2;
-
-      // Realistic Anime Eyelid Blinking Mechanism
+      // Draw Open Eyes with Pupils (when not fully closed)
+      // REMOVED - Using base image eyes instead
+      
+      // Realistic Anime Eyelid Blinking Mechanism (draws on top of eyes)
       if (blinkVal > 0.04) {
         const drawEyelid = (cx: number, cy: number, w: number, h: number) => {
           ctx.save();

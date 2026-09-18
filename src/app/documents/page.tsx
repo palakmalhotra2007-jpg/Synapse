@@ -3,91 +3,90 @@
 import React, { useState, useEffect } from 'react';
 import {
   FileText,
-  Bot,
-  Send,
   UploadCloud,
   Layers,
-  Sparkles,
   CheckCircle2,
   AlertTriangle,
   FileCheck,
   Search,
   Plus,
-  ArrowRight,
   Shield,
   Eye,
-  Paperclip,
   Download,
-  FileDown,
-  Users,
   Lock,
   Tag,
   Trash2,
+  Calendar,
+  User,
+  Filter,
+  RefreshCw,
+  FolderLock,
+  Building,
+  ArrowRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
-import { DocumentItem, DocumentComparisonResult } from '@/types/document';
+import { DocumentItem, DocumentComparisonResult, VaultId, DocumentClassification } from '@/types/document';
 import {
   getStoredDocuments,
   saveStoredDocuments,
   sampleDocComparison,
 } from '@/lib/mockData/documents';
-import { TEAMS_LIST } from '@/lib/auth/usersDb';
+import { TEAMS_LIST, canUserAccessVault, getStoredUsers } from '@/lib/auth/usersDb';
 import { SynapseAIEngine } from '@/lib/ai/synapseEngine';
 import { DocumentUploadModal } from '@/components/documents/DocumentUploadModal';
+import { DocumentPreviewDrawer } from '@/components/documents/DocumentPreviewDrawer';
+import { EmployeeProfileDrawer } from '@/components/employees/EmployeeProfileDrawer';
+import { AccessDenied } from '@/components/ui/AccessDenied';
 import { useAuth } from '@/lib/firebase/authContext';
-import { TeamId } from '@/types/dashboard';
-import { dispatchCompanionGuide } from '@/lib/ai/companionGuide';
+import { UserProfile } from '@/types/dashboard';
 
 export default function DocumentIntelligencePage() {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
-  const [selectedDoc, setSelectedDoc] = useState<DocumentItem | null>(null);
-  const [activeTab, setActiveTab] = useState<'chat' | 'clauses' | 'compare'>('chat');
-  const [selectedTeamVault, setSelectedTeamVault] = useState<string>('all');
+  const [selectedVault, setSelectedVault] = useState<VaultId | 'all'>('all');
   const [searchDocQuery, setSearchDocQuery] = useState('');
+  const [classificationFilter, setClassificationFilter] = useState<string>('ALL');
+  const [activeTab, setActiveTab] = useState<'workspace' | 'compare'>('workspace');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
-  // Document AI Chat state
-  const [docMessages, setDocMessages] = useState<
-    { role: 'user' | 'assistant'; content: string; citation?: string }[]
-  >([]);
-  const [docQuery, setDocQuery] = useState('');
-  const [isAnswering, setIsAnswering] = useState(false);
+  // Document Preview State
+  const [previewDoc, setPreviewDoc] = useState<DocumentItem | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // Employee Profile Drawer State
+  const [profileEmployee, setProfileEmployee] = useState<UserProfile | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Side-by-side comparison state
   const [compareDoc1, setCompareDoc1] = useState<DocumentItem | null>(null);
   const [compareDoc2, setCompareDoc2] = useState<DocumentItem | null>(null);
   const [comparisonResult, setComparisonResult] = useState<DocumentComparisonResult | null>(sampleDocComparison);
+  const [isComparing, setIsComparing] = useState(false);
 
-  // Initialize and sync documents from LocalStorage
+  // Initialize and sync documents
   useEffect(() => {
     const stored = getStoredDocuments();
     setDocuments(stored);
-    if (stored.length > 0) {
-      setSelectedDoc(stored[0]);
+    if (stored.length >= 2) {
       setCompareDoc1(stored[0]);
-      setCompareDoc2(stored[1] || stored[0]);
-      setDocMessages([
-        {
-          role: 'assistant',
-          content: `I am ready to answer any questions about **${stored[0].name}** (Team: ${stored[0].teamName || 'Enterprise'}). Ask me about SLA uptime guarantees, liability caps, or data privacy rules!`,
-          citation: stored[0].keyClauses?.[0]?.snippet || 'Section 4: Service Level Agreement',
-        },
-      ]);
+      setCompareDoc2(stored[1]);
     }
   }, []);
 
-  // Filter documents by Vault and Search query
+  // Vault authorization check
+  const isVaultAuthorized = selectedVault === 'all' || canUserAccessVault(user, selectedVault);
+
+  // Filter documents by Vault, Search, and Classification
   const filteredDocuments = documents.filter((doc) => {
     const matchesVault =
-      selectedTeamVault === 'all'
+      selectedVault === 'all'
         ? true
-        : selectedTeamVault === 'my_team'
-        ? doc.teamId === user?.teamId || doc.teamId === 'all'
-        : doc.teamId === selectedTeamVault || doc.teamId === 'all';
+        : selectedVault === 'my_team'
+        ? doc.vaultId === (user?.teamId as any) || doc.teamId === user?.teamId
+        : doc.vaultId === selectedVault;
 
     const matchesSearch =
       !searchDocQuery.trim() ||
@@ -97,127 +96,120 @@ export default function DocumentIntelligencePage() {
       doc.uploadedBy?.toLowerCase().includes(searchDocQuery.toLowerCase()) ||
       doc.uploadedByEmployeeId?.toLowerCase().includes(searchDocQuery.toLowerCase());
 
-    return matchesVault && matchesSearch;
+    const matchesClassification =
+      classificationFilter === 'ALL' || doc.classification === classificationFilter;
+
+    return matchesVault && matchesSearch && matchesClassification;
   });
 
   const handleDocumentUploaded = (newDoc: DocumentItem) => {
     const updated = [newDoc, ...documents.filter((d) => d.id !== newDoc.id)];
     setDocuments(updated);
-    setSelectedDoc(newDoc);
-    setDocMessages([
-      {
-        role: 'assistant',
-        content: `I have successfully parsed and indexed **${newDoc.name}** for **${newDoc.teamName}** vault. All ${newDoc.pageCount || 1} pages and clauses are now available for instant semantic search. What would you like to explore?`,
-        citation: newDoc.keyClauses?.[0]?.snippet || 'Initial vector indexing complete',
-      },
-    ]);
+    setPreviewDoc(newDoc);
+    setIsPreviewOpen(true);
   };
 
   const handleDeleteDocument = (docId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = documents.filter((d) => d.id !== docId);
-    setDocuments(updated);
-    saveStoredDocuments(updated);
-    if (selectedDoc?.id === docId && updated.length > 0) {
-      setSelectedDoc(updated[0]);
+    if (confirm('Are you sure you want to delete this document from the vault?')) {
+      const updated = documents.filter((d) => d.id !== docId);
+      setDocuments(updated);
+      saveStoredDocuments(updated);
     }
   };
 
-  const handleSelectDocument = (doc: DocumentItem) => {
-    setSelectedDoc(doc);
-    setDocMessages([
-      {
-        role: 'assistant',
-        content: `Context switched to **${doc.name}** (Team Vault: ${doc.teamName || 'Enterprise'}). Ask me about specific clauses, liability terms, or compliance guidelines.`,
-        citation: doc.keyClauses?.[0]?.snippet || 'RAG Vector Memory Loaded',
-      },
-    ]);
-  };
-
-  const handleDocChatQuery = async () => {
-    if (!docQuery.trim() || isAnswering || !selectedDoc) return;
-
-    const userText = docQuery;
-    setDocMessages((prev) => [...prev, { role: 'user', content: userText }]);
-    setDocQuery('');
-    setIsAnswering(true);
-
-    try {
-      const response = await SynapseAIEngine.generateChatResponse(
-        userText,
-        'synapse-flash-v4',
-        [],
-        [selectedDoc]
-      );
-
-      setDocMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: response.responseText,
-          citation: response.citations?.[0]?.snippet,
-        },
-      ]);
-    } finally {
-      setIsAnswering(false);
+  const handleOpenOwnerProfile = (employeeId: string) => {
+    const allUsers = getStoredUsers();
+    const matched = allUsers.find((u) => u.employeeId === employeeId);
+    if (matched) {
+      setProfileEmployee(matched);
+      setIsProfileOpen(true);
     }
   };
 
   const runComparison = async () => {
     if (!compareDoc1 || !compareDoc2) return;
-    const res = await SynapseAIEngine.compareDocuments(compareDoc1, compareDoc2);
-    setComparisonResult(res);
+    setIsComparing(true);
+    try {
+      const res = await SynapseAIEngine.compareDocuments(compareDoc1, compareDoc2);
+      setComparisonResult(res);
+    } finally {
+      setIsComparing(false);
+    }
   };
 
   const exportComparisonReport = () => {
     if (!comparisonResult) return;
-    const report = `# SYNAPSE CONTRACT COMPARISON & DIFF REPORT
+    const report = `# SYNAPSE ENTERPRISE CONTRACT & DOCUMENT DIFF REPORT
 Generated: ${new Date().toLocaleString()}
-Document 1: ${comparisonResult.doc1Name}
-Document 2: ${comparisonResult.doc2Name}
-Similarity Match: ${comparisonResult.similarityScore}%
+Baseline Document: ${comparisonResult.doc1Name}
+Updated Document: ${comparisonResult.doc2Name}
+Similarity Match Score: ${comparisonResult.similarityScore}%
 
-## Financial Variance
+## Financial Variance Analysis
 ${comparisonResult.financialVariance}
 
-## Risk Variance
+## Risk Variance Analysis
 ${comparisonResult.riskVariance}
 
-## Key Differences Breakdown
+## Key Clause Differences
 ${comparisonResult.keyDifferences
   .map(
     (d) => `### ${d.section} [${d.impact} IMPACT]
-- Doc 1: ${d.doc1Text}
-- Doc 2: ${d.doc2Text}
-*Explanation: ${d.explanation}*`
+- Baseline: ${d.doc1Text}
+- Updated: ${d.doc2Text}
+*AI Analysis: ${d.explanation}*`
   )
   .join('\n\n')}
 
-## Executive Recommendations
+## Executive Compliance Recommendations
 ${comparisonResult.recommendations.map((r) => `- ${r}`).join('\n')}`;
 
     const blob = new Blob([report], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Contract_Comparison_${Date.now()}.md`;
+    a.download = `Document_Diff_Report_${Date.now()}.md`;
     a.click();
   };
 
+  const getClassificationBadge = (classification: DocumentClassification) => {
+    switch (classification) {
+      case 'TOP SECRET':
+        return <Badge variant="rose">TOP SECRET</Badge>;
+      case 'CONFIDENTIAL':
+        return <Badge variant="amber">CONFIDENTIAL</Badge>;
+      case 'INTERNAL RESTRICTED':
+        return <Badge variant="purple">INTERNAL RESTRICTED</Badge>;
+      default:
+        return <Badge variant="emerald">UNCLASSIFIED</Badge>;
+    }
+  };
+
+  const vaultsList: { id: VaultId | 'all'; label: string; count: number; requiredRole?: string }[] = [
+    { id: 'all', label: 'All Vaults', count: documents.length },
+    { id: 'executive', label: 'Executive Vault', count: documents.filter((d) => d.vaultId === 'executive').length, requiredRole: 'Executive or Admin' },
+    { id: 'finance', label: 'Finance Vault', count: documents.filter((d) => d.vaultId === 'finance').length, requiredRole: 'Finance or Admin' },
+    { id: 'legal', label: 'Legal Vault', count: documents.filter((d) => d.vaultId === 'legal').length, requiredRole: 'Legal or Admin' },
+    { id: 'cyber', label: 'Cyber & Fraud Vault', count: documents.filter((d) => d.vaultId === 'cyber').length, requiredRole: 'Security Analyst or Admin' },
+    { id: 'engineering', label: 'Engineering Vault', count: documents.filter((d) => d.vaultId === 'engineering').length },
+    { id: 'my_team', label: 'My Team Vault', count: documents.filter((d) => d.vaultId === (user?.teamId as any) || d.teamId === user?.teamId).length },
+  ];
+
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-6 max-w-full text-slate-100">
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider mb-1">
-            <FileText className="w-4 h-4" />
-            <span>Team Vaults & Multi-Document AI Reasoning</span>
+            <FolderLock className="w-4 h-4" />
+            <span>Encrypted Multi-Vault Storage & Clause Intelligence</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Document Intelligence & Team Vaults
+            Document Intelligence & Vault Workspace
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Upload and query enterprise PDFs, agreements, and specifications scoped by Team Vaults with automated clause extraction.
+            Role-isolated document repositories with automated clause extraction, side-by-side diff comparison, and audit history.
           </p>
         </div>
 
@@ -228,444 +220,393 @@ ${comparisonResult.recommendations.map((r) => `- ${r}`).join('\n')}`;
             size="sm"
             leftIcon={<UploadCloud className="w-4 h-4" />}
           >
-            Upload to Team Vault
+            Upload to Vault
           </Button>
+
           {activeTab === 'compare' && (
-            <Button onClick={exportComparisonReport} variant="glow" size="sm" leftIcon={<Download className="w-4 h-4" />}>
+            <Button onClick={exportComparisonReport} variant="outline" size="sm" leftIcon={<Download className="w-4 h-4" />}>
               Export Diff Report
             </Button>
           )}
         </div>
       </div>
 
-      {/* Team Vault Filter Bar */}
-      <div className="p-2 bg-slate-900/80 border border-slate-800 rounded-2xl flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            onClick={() => setSelectedTeamVault('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              selectedTeamVault === 'all'
-                ? 'bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            All Vaults ({documents.length})
-          </button>
-          <button
-            onClick={() => setSelectedTeamVault('my_team')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              selectedTeamVault === 'my_team'
-                ? 'bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            <span>My Team Vault</span>
-            <span className="text-[10px] font-mono px-1 py-0.2 bg-slate-950/60 rounded">
-              {user?.teamName?.split(' ')[0] || 'My Team'}
-            </span>
-          </button>
+      {/* Main Mode Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <button
+          onClick={() => setActiveTab('workspace')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'workspace'
+              ? 'bg-slate-900 border border-slate-700 text-white shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <FileText className="w-4 h-4 text-cyan-400" />
+          <span>Vault Workspace & Library</span>
+        </button>
 
-          {TEAMS_LIST.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSelectedTeamVault(t.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                selectedTeamVault === t.id
-                  ? 'bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              {t.name.split(' ')[0]} Vault
-            </button>
-          ))}
-        </div>
-
-        {/* Search documents input */}
-        <div className="relative min-w-[220px]">
-          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            value={searchDocQuery}
-            onChange={(e) => setSearchDocQuery(e.target.value)}
-            placeholder="Filter vault documents..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
-          />
-        </div>
+        <button
+          onClick={() => setActiveTab('compare')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'compare'
+              ? 'bg-slate-900 border border-slate-700 text-white shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Layers className="w-4 h-4 text-purple-400" />
+          <span>Side-by-Side Compare Documents</span>
+        </button>
       </div>
 
-      {/* Main Grid: Document Library & Active Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Document Uploader & Active Documents */}
-        <div className="space-y-6 lg:col-span-1">
-          {/* Quick Dropzone Card */}
-          <Card className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <UploadCloud className="w-4 h-4 text-synapse-cyan" />
-                <span>Upload Document</span>
-              </h3>
-              <Badge variant="cyan" size="sm">AES-256 RAG</Badge>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsUploadModalOpen(true)}
-              className="w-full p-4 rounded-xl border border-dashed border-synapse-cyan/40 bg-slate-900/60 hover:bg-slate-900 text-center transition-all group"
-            >
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-synapse-cyan/10 border border-synapse-cyan/30 flex items-center justify-center text-synapse-cyan group-hover:scale-110 transition-transform">
-                  <Plus className="w-5 h-5" />
-                </div>
-                <div className="text-xs font-bold text-white group-hover:text-synapse-cyan">
-                  Upload PDF, DOCX or TXT to Team Vault
-                </div>
-                <p className="text-[10px] text-slate-400">
-                  Instant clause breakdown & vector indexing
-                </p>
-              </div>
-            </button>
-          </Card>
-
-          {/* Indexed Document Library */}
-          <Card className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                Vault Documents ({filteredDocuments.length}):
-              </span>
-              <span className="text-[10px] text-synapse-cyan font-mono">
-                {selectedTeamVault === 'all' ? 'All Vaults' : 'Filtered Vault'}
-              </span>
-            </div>
-
-            <div className="space-y-2.5 max-h-[480px] overflow-y-auto custom-scrollbar">
-              {filteredDocuments.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-500 space-y-2">
-                  <FileText className="w-8 h-8 mx-auto text-slate-600" />
-                  <p>No documents found matching the vault filter.</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsUploadModalOpen(true)}
+      {/* TAB 1: Vault Workspace */}
+      {activeTab === 'workspace' && (
+        <div className="space-y-6">
+          {/* Vault Navigation Pills */}
+          <div className="p-2 bg-slate-900/80 border border-slate-800 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {vaultsList.map((v) => {
+                const isSelected = selectedVault === v.id;
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => setSelectedVault(v.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-slate-950 border border-synapse-cyan text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                    }`}
                   >
+                    <span>{v.label}</span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 bg-slate-900 rounded-md font-bold text-cyan-400 border border-slate-800">
+                      {v.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search & Classification Filters */}
+            <div className="flex items-center gap-2">
+              <select
+                value={classificationFilter}
+                onChange={(e) => setClassificationFilter(e.target.value)}
+                className="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
+              >
+                <option value="ALL">All Classifications</option>
+                <option value="TOP SECRET">Top Secret</option>
+                <option value="CONFIDENTIAL">Confidential</option>
+                <option value="INTERNAL RESTRICTED">Internal Restricted</option>
+                <option value="UNCLASSIFIED">Unclassified</option>
+              </select>
+
+              <div className="relative min-w-[220px]">
+                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={searchDocQuery}
+                  onChange={(e) => setSearchDocQuery(e.target.value)}
+                  placeholder="Filter vault documents..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* If unauthorized vault, display Access Denied */}
+          {!isVaultAuthorized ? (
+            <AccessDenied
+              vaultName={vaultsList.find((v) => v.id === selectedVault)?.label}
+              requiredClearance={vaultsList.find((v) => v.id === selectedVault)?.requiredRole || 'Level 4 Clearance'}
+              onBack={() => setSelectedVault('all')}
+            />
+          ) : (
+            /* Document Library Table */
+            <Card className="p-0 overflow-hidden border-slate-800">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Indexed Vault Documents ({filteredDocuments.length})
+                </span>
+                <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>AES-256 Verified Storage</span>
+                </span>
+              </div>
+
+              {filteredDocuments.length === 0 ? (
+                <div className="p-12 text-center text-xs text-slate-500 space-y-3">
+                  <FileText className="w-10 h-10 mx-auto text-slate-600" />
+                  <p>No documents found in this vault matching your criteria.</p>
+                  <Button variant="outline" size="sm" onClick={() => setIsUploadModalOpen(true)}>
                     Upload First Document
                   </Button>
                 </div>
               ) : (
-                filteredDocuments.map((doc) => {
-                  const isSelected = selectedDoc?.id === doc.id;
-                  return (
-                    <div
-                      key={doc.id}
-                      onClick={() => handleSelectDocument(doc)}
-                      className={`p-3.5 rounded-xl border transition-all cursor-pointer space-y-2 group relative ${
-                        isSelected
-                          ? 'bg-cyan-500/10 border-cyan-500/40 text-white shadow-[0_0_15px_rgba(0,242,254,0.15)]'
-                          : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-slate-900'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-xs font-bold text-slate-100 line-clamp-1 group-hover:text-synapse-cyan">
-                          {doc.name}
-                        </h4>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Badge variant="cyan" size="sm">{doc.type.toUpperCase()}</Badge>
-                          <button
-                            onClick={(e) => handleDeleteDocument(doc.id, e)}
-                            className="p-1 text-slate-500 hover:text-rose-400 rounded transition-colors"
-                            title="Remove document"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 bg-slate-950/60 text-slate-400 font-mono text-[11px]">
+                        <th className="py-3 px-4">Document Name</th>
+                        <th className="py-3 px-4">Vault</th>
+                        <th className="py-3 px-4">Owner / Author</th>
+                        <th className="py-3 px-4">Classification</th>
+                        <th className="py-3 px-4">Security Level</th>
+                        <th className="py-3 px-4">Updated Date</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                      {filteredDocuments.map((doc) => (
+                        <tr
+                          key={doc.id}
+                          onClick={() => {
+                            setPreviewDoc(doc);
+                            setIsPreviewOpen(true);
+                          }}
+                          className="hover:bg-slate-900/80 transition-colors cursor-pointer group"
+                        >
+                          <td className="py-3.5 px-4 font-semibold text-white group-hover:text-cyan-400 transition-colors">
+                            <div className="flex items-center gap-2.5">
+                              <Badge variant="cyan" size="sm">
+                                {doc.type.toUpperCase()}
+                              </Badge>
+                              <div className="min-w-0">
+                                <span className="block truncate max-w-sm">{doc.name}</span>
+                                <span className="text-[10px] text-slate-500 font-mono block">
+                                  {doc.id} • {doc.size}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
 
-                      <p className="text-[11px] text-slate-400 line-clamp-2">{doc.summary}</p>
+                          <td className="py-3.5 px-4">
+                            <span className="text-slate-300 font-medium">
+                              {doc.vaultId?.toUpperCase()}
+                            </span>
+                          </td>
 
-                      {/* Team & Uploader Metadata Row */}
-                      <div className="pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
-                        <span className="text-slate-400 flex items-center gap-1 truncate max-w-[130px]">
-                          <Users className="w-3 h-3 text-purple-400 shrink-0" />
-                          <span className="truncate">{doc.teamName || 'All Teams'}</span>
-                        </span>
-                        <span className="font-mono text-synapse-cyan">
-                          {doc.uploadedByEmployeeId || 'EMP-EXEC-001'}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
+                          <td className="py-3.5 px-4">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (doc.uploadedByEmployeeId) {
+                                  handleOpenOwnerProfile(doc.uploadedByEmployeeId);
+                                }
+                              }}
+                              className="text-cyan-400 hover:underline font-medium flex items-center gap-1"
+                            >
+                              <User className="w-3.5 h-3.5 text-slate-500" />
+                              <span>{doc.uploadedBy}</span>
+                            </button>
+                            <span className="text-[10px] text-slate-500 font-mono block">
+                              {doc.uploadedByEmployeeId}
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            {getClassificationBadge(doc.classification)}
+                          </td>
+
+                          <td className="py-3.5 px-4 font-mono text-[11px] text-slate-400">
+                            {doc.securityLevel}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-slate-400 font-mono text-[11px]">
+                            {new Date(doc.uploadedAt).toLocaleDateString()}
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            <Badge variant="emerald" size="sm">
+                              READY
+                            </Badge>
+                          </td>
+
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPreviewDoc(doc);
+                                  setIsPreviewOpen(true);
+                                }}
+                                leftIcon={<Eye className="w-3.5 h-3.5" />}
+                              >
+                                Preview
+                              </Button>
+
+                              <button
+                                onClick={(e) => handleDeleteDocument(doc.id, e)}
+                                className="p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
+                                title="Delete document"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
-            </div>
-          </Card>
+            </Card>
+          )}
         </div>
+      )}
 
-        {/* Right 2 Columns: Document Workspace (Doc Chat, Clauses, Side-by-Side Compare) */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Navigation Mode Tabs */}
-          <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
-            <button
-              onClick={() => {
-                setActiveTab('chat');
-                dispatchCompanionGuide('/documents', {
-                  customTitle: 'Document AI Chat',
-                  customSpeech: 'Document AI Chat! Ask questions grounded in your selected document with real-time vector citations.',
-                  category: 'Doc Chat',
-                  speak: true,
-                });
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'chat'
-                  ? 'bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 shadow-[0_0_15px_rgba(0,242,254,0.3)]'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              <Bot className="w-4 h-4" />
-              <span>Document AI Chat</span>
-            </button>
+      {/* TAB 2: Side-by-Side Compare Documents */}
+      {activeTab === 'compare' && (
+        <Card className="space-y-6">
+          {/* Document Selectors */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-slate-800 pb-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-400">Baseline Document (v1.0)</label>
+              <select
+                value={compareDoc1?.id || ''}
+                onChange={(e) => {
+                  const d = documents.find((doc) => doc.id === e.target.value);
+                  if (d) setCompareDoc1(d);
+                }}
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
+              >
+                {documents.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} ({d.vaultId?.toUpperCase()})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <button
-              onClick={() => {
-                setActiveTab('clauses');
-                dispatchCompanionGuide('/documents', {
-                  customTitle: 'Key Clauses & Summary',
-                  customSpeech: 'Key Clauses & Extracted Terms! Review SLA commitments, liability caps, and summary bullet points.',
-                  category: 'Clause Extraction',
-                  speak: true,
-                });
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'clauses'
-                  ? 'bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 shadow-[0_0_15px_rgba(0,242,254,0.3)]'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              <FileCheck className="w-4 h-4" />
-              <span>Key Clauses & Summary</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('compare');
-                dispatchCompanionGuide('/documents', {
-                  customTitle: 'Side-by-Side Comparison',
-                  customSpeech: 'Document Comparison Engine! Compare two contract versions side-by-side to highlight differences and modified clauses.',
-                  category: 'Diff & Audit',
-                  speak: true,
-                });
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'compare'
-                  ? 'bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 shadow-[0_0_15px_rgba(0,242,254,0.3)]'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>Compare Documents</span>
-            </button>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-400">Updated Document (v2.0)</label>
+              <select
+                value={compareDoc2?.id || ''}
+                onChange={(e) => {
+                  const d = documents.find((doc) => doc.id === e.target.value);
+                  if (d) setCompareDoc2(d);
+                }}
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
+              >
+                {documents.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} ({d.vaultId?.toUpperCase()})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {/* TAB 1: Document AI Chat Workspace */}
-          {activeTab === 'chat' && (
-            <Card className="flex flex-col h-[580px] p-0 overflow-hidden relative border-synapse-cyan/30">
-              {/* Doc Header Bar */}
-              <div className="p-4 border-b border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="w-4 h-4 text-synapse-cyan shrink-0" />
-                  <span className="text-sm font-bold text-white truncate max-w-sm">
-                    {selectedDoc?.name || 'Select a document'}
-                  </span>
+          {/* Action Row */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-white">Side-by-Side Difference Analysis</h3>
+              <p className="text-xs text-slate-400">
+                Automated contractual clause comparison, liability caps, and financial exposure variance.
+              </p>
+            </div>
+
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={runComparison}
+              isLoading={isComparing}
+              leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isComparing ? 'animate-spin' : ''}`} />}
+            >
+              Re-Calculate Diff
+            </Button>
+          </div>
+
+          {/* Comparison Results Card */}
+          {comparisonResult && (
+            <div className="space-y-5">
+              {/* Metric Highlights */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <span className="text-[11px] text-slate-500 block">Similarity Score</span>
+                  <span className="text-xl font-bold text-cyan-400">{comparisonResult.similarityScore}% Match</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <Badge variant="cyan" size="sm">{selectedDoc?.teamName || 'Enterprise'}</Badge>
-                  <span>{selectedDoc?.wordCount?.toLocaleString() || 0} words</span>
+                <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <span className="text-[11px] text-slate-500 block">Financial Variance</span>
+                  <span className="text-xs font-bold text-white block mt-1 line-clamp-2">{comparisonResult.financialVariance}</span>
                 </div>
-              </div>
-
-              {/* Chat Conversation Body */}
-              <div className="flex-1 p-5 overflow-y-auto space-y-4 custom-scrollbar bg-slate-950/40">
-                {docMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-xl p-4 rounded-2xl text-xs leading-relaxed ${
-                        msg.role === 'user'
-                          ? 'bg-purple-600/30 border border-purple-500/40 text-slate-100 rounded-tr-none'
-                          : 'glass-panel border-slate-800 text-slate-200 rounded-tl-none bg-slate-900/90'
-                      }`}
-                    >
-                      <MarkdownRenderer content={msg.content} />
-
-                      {msg.citation && (
-                        <div className="mt-3 pt-2 border-t border-slate-800 text-[11px] text-synapse-cyan italic">
-                          Citation snippet: "{msg.citation}"
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {isAnswering && (
-                  <div className="flex items-center gap-2 text-xs text-slate-400 p-2">
-                    <div className="w-3 h-3 border-2 border-synapse-cyan border-t-transparent rounded-full animate-spin" />
-                    <span>Searching loaded document vectors for answer...</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Doc Chat Input */}
-              <div className="p-3 border-t border-slate-800 bg-slate-900/90 flex items-center gap-2">
-                <input
-                  type="text"
-                  value={docQuery}
-                  onChange={(e) => setDocQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleDocChatQuery()}
-                  placeholder={`Ask anything about ${selectedDoc?.name || 'document'}...`}
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
-                />
-                <Button
-                  onClick={handleDocChatQuery}
-                  disabled={!docQuery.trim() || isAnswering || !selectedDoc}
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<Send className="w-3.5 h-3.5" />}
-                >
-                  Ask AI
-                </Button>
-              </div>
-            </Card>
-          )}
-
-          {/* TAB 2: Key Clauses & Summary */}
-          {activeTab === 'clauses' && (
-            <Card className="space-y-6">
-              <div className="border-b border-slate-800 pb-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-white">{selectedDoc?.name}</h3>
-                  <Badge variant="cyan">{selectedDoc?.accessLevel || 'TEAM ONLY'}</Badge>
+                <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <span className="text-[11px] text-slate-500 block">Risk Variance</span>
+                  <span className="text-xs font-bold text-emerald-400 block mt-1 line-clamp-2">{comparisonResult.riskVariance}</span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">{selectedDoc?.summary}</p>
-                <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
-                  <span>Vault: <strong className="text-slate-200">{selectedDoc?.teamName}</strong></span>
-                  <span>•</span>
-                  <span>Uploader: <strong className="text-synapse-cyan">{selectedDoc?.uploadedBy} ({selectedDoc?.uploadedByEmployeeId})</strong></span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold text-purple-400 uppercase tracking-wider">
-                  Extracted Contractual Clauses ({selectedDoc?.keyClauses?.length || 0}):
-                </h4>
-                {selectedDoc?.keyClauses?.map((clause, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h5 className="text-xs font-bold text-white">{clause.title}</h5>
-                      <Badge variant={clause.riskLevel === 'HIGH' ? 'rose' : clause.riskLevel === 'MEDIUM' ? 'amber' : 'cyan'}>
-                        {clause.riskLevel} RISK
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-slate-300 italic">"{clause.snippet}"</p>
-                    <span className="text-[10px] text-slate-500 block">{clause.pageOrSection}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* TAB 3: Compare Documents Side-by-Side */}
-          {activeTab === 'compare' && (
-            <Card className="space-y-6">
-              {/* Document Selectors Header */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-slate-800 pb-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-400">Baseline Document (v1)</label>
-                  <select
-                    value={compareDoc1?.id || ''}
-                    onChange={(e) => {
-                      const doc = documents.find((d) => d.id === e.target.value) || documents[0];
-                      setCompareDoc1(doc);
-                    }}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
-                  >
-                    {documents.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name} ({d.teamName?.split(' ')[0]})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-400">Target Document (v2)</label>
-                  <select
-                    value={compareDoc2?.id || ''}
-                    onChange={(e) => {
-                      const doc = documents.find((d) => d.id === e.target.value) || documents[0];
-                      setCompareDoc2(doc);
-                    }}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
-                  >
-                    {documents.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name} ({d.teamName?.split(' ')[0]})</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-white">Side-by-Side Comparison Results</h3>
-                  <p className="text-xs text-slate-400">Identify risk variance, SLA changes, and financial impact</p>
-                </div>
-                {comparisonResult && (
-                  <Badge variant="cyan" size="md">
-                    {comparisonResult.similarityScore}% Match Similarity
-                  </Badge>
-                )}
               </div>
 
               {/* Differences List */}
-              {comparisonResult && (
-                <div className="space-y-4">
-                  {comparisonResult.keyDifferences.map((diff, idx) => (
-                    <div key={idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-white">{diff.section}</span>
-                        <Badge variant={diff.impact === 'CRITICAL' ? 'rose' : 'amber'}>
-                          {diff.impact} VARIANCE
-                        </Badge>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                        <div className="p-3 rounded-lg bg-slate-950 border border-rose-500/20 text-slate-300">
-                          <span className="text-[10px] text-slate-500 font-bold block mb-1">Baseline Document:</span>
-                          {diff.doc1Text}
-                        </div>
-                        <div className="p-3 rounded-lg bg-slate-950 border border-emerald-500/20 text-slate-300">
-                          <span className="text-[10px] text-slate-500 font-bold block mb-1">Updated Document:</span>
-                          {diff.doc2Text}
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-synapse-cyan font-medium pt-1">
-                        <strong>AI Analysis:</strong> {diff.explanation}
-                      </p>
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                  Identified Clause Changes ({comparisonResult.keyDifferences.length}):
+                </span>
+                {comparisonResult.keyDifferences.map((diff, idx) => (
+                  <div key={idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white">{diff.section}</span>
+                      <Badge variant={diff.impact === 'CRITICAL' ? 'rose' : diff.impact === 'MODERATE' ? 'amber' : 'emerald'} size="sm">
+                        {diff.impact} VARIANCE
+                      </Badge>
                     </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          )}
-        </div>
-      </div>
 
-      {/* Upload Document Modal */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
+                        <span className="text-[10px] text-slate-500 font-bold block mb-1">Baseline Document:</span>
+                        {diff.doc1Text}
+                      </div>
+                      <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
+                        <span className="text-[10px] text-cyan-400 font-bold block mb-1">Updated Document:</span>
+                        {diff.doc2Text}
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-300 font-medium pt-1">
+                      <strong>AI Analysis:</strong> {diff.explanation}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Recommendations */}
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider block">
+                  Executive Compliance Recommendations:
+                </span>
+                <ul className="space-y-1 text-xs text-slate-300 list-disc pl-5">
+                  {comparisonResult.recommendations.map((rec, idx) => (
+                    <li key={idx}>{rec}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Document Upload Modal */}
       <DocumentUploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUploadSuccess={handleDocumentUploaded}
-        defaultTeamId={(user?.teamId as TeamId) || 'all'}
+        defaultVaultId={selectedVault === 'all' || selectedVault === 'my_team' ? 'engineering' : selectedVault}
+      />
+
+      {/* Document Preview Drawer */}
+      <DocumentPreviewDrawer
+        document={previewDoc}
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        onOpenOwnerProfile={handleOpenOwnerProfile}
+      />
+
+      {/* Employee Profile Drawer */}
+      <EmployeeProfileDrawer
+        employee={profileEmployee}
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
       />
     </div>
   );
 }
-

@@ -10,7 +10,7 @@ import { LiveCharacter } from '@/components/character/LiveCharacter';
 import { UnifiedAIChatModal } from '@/components/workspace/UnifiedAIChatModal';
 
 export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [mounted, setMounted] = React.useState(false);
   const [isAILLMOpen, setIsAILLMOpen] = useState(false);
   const [aiLLMInitialMode, setAiLLMInitialMode] = useState<'chat' | 'image_search' | 'chart_understanding' | 'duplicate_detection'>('chat');
@@ -19,10 +19,11 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     setMounted(true);
   }, []);
 
-  if (!mounted && loading) {
+  // Show brief dark loading screen only during initial client hydration
+  if (!mounted) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-synapse-bg text-white gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-synapse-cyan/10 border border-synapse-cyan/30 flex items-center justify-center text-synapse-cyan animate-pulse-glow">
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#050811] text-white gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
           <Loader2 className="w-6 h-6 animate-spin" />
         </div>
         <p className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
@@ -32,6 +33,7 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     );
   }
 
+  // Show auth portal if no authenticated user
   if (!user) {
     return <AuthPortal />;
   }

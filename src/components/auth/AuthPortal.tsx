@@ -2,21 +2,18 @@
 
 import React, { useState } from 'react';
 import {
-  Zap,
   Shield,
   Lock,
   Mail,
   User,
   ArrowRight,
-  Sparkles,
   AlertCircle,
   CheckCircle2,
   Eye,
   EyeOff,
   ShieldCheck,
-  Scan,
+  KeyRound,
   Fingerprint,
-  Users,
   Building,
   Plus,
 } from 'lucide-react';
@@ -24,29 +21,24 @@ import { useAuth } from '@/lib/firebase/authContext';
 import { TEAMS_LIST, StoredUser, getStoredUsers } from '@/lib/auth/usersDb';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { FaceRecognitionModal } from './FaceRecognitionModal';
-import { TeamId } from '@/types/dashboard';
+import { TeamId, UserRbacRole } from '@/types/dashboard';
 
 export const AuthPortal: React.FC = () => {
-  const { login, register, loginWithPersona } = useAuth();
+  const { login, loginWithPasskey, register, isPlatformBiometricAvailable } = useAuth();
   const [tab, setTab] = useState<'login' | 'register'>('login');
-  const [authMethod, setAuthMethod] = useState<'password' | 'fingerprint' | 'face'>('password');
-  const [isFaceModalOpen, setIsFaceModalOpen] = useState(false);
-  const [isFingerprintScanning, setIsFingerprintScanning] = useState(false);
 
   // Form states
   const [email, setEmail] = useState('alex.sterling@synapse-ai.io');
   const [password, setPassword] = useState('Synapse#2026');
   const [name, setName] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>('engineering');
-  const [isCreatingNewTeam, setIsCreatingNewTeam] = useState(false);
-  const [newTeamName, setNewTeamName] = useState('');
-  const [newDepartmentName, setNewDepartmentName] = useState('');
-  const [role, setRole] = useState('Senior AI Systems Engineer');
+  const [selectedRbacRole, setSelectedRbacRole] = useState<UserRbacRole>('Employee');
+  const [role, setRole] = useState('Senior Systems Specialist');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPasskeyAuthenticating, setIsPasskeyAuthenticating] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,15 +52,14 @@ export const AuthPortal: React.FC = () => {
         if (!res.success) {
           setErrorMessage(res.error || 'Invalid corporate credentials.');
         } else {
-          setSuccessMessage('Authentication verified. Welcome to Synapse.');
+          setSuccessMessage('Authentication verified. Welcome to Synapse Enterprise.');
         }
       } else {
-        const finalTeamId = isCreatingNewTeam ? (newTeamName.toLowerCase().replace(/\s+/g, '_') as TeamId) : (selectedTeam as TeamId);
-        const res = await register(name, email, password, finalTeamId, role);
+        const res = await register(name, email, password, selectedTeam as TeamId, role, selectedRbacRole);
         if (!res.success) {
           setErrorMessage(res.error || 'Registration failed.');
         } else {
-          setSuccessMessage('Employee account provisioned and biometric clearance registered.');
+          setSuccessMessage('Employee account provisioned with assigned security clearance.');
         }
       }
     } catch (err: any) {
@@ -78,116 +69,99 @@ export const AuthPortal: React.FC = () => {
     }
   };
 
-  const handleFingerprintScan = () => {
-    setIsFingerprintScanning(true);
+  const handlePasskeyLogin = async () => {
+    setIsPasskeyAuthenticating(true);
     setErrorMessage(null);
+    setSuccessMessage(null);
 
-    setTimeout(async () => {
-      setIsFingerprintScanning(false);
-      // Auto-authenticate default user
-      const defaultUser = getStoredUsers()[0];
-      if (defaultUser) {
-        loginWithPersona(defaultUser.uid);
-        setSuccessMessage('Fingerprint biometric vector verified.');
+    try {
+      const res = await loginWithPasskey(email || undefined);
+      if (!res.success) {
+        setErrorMessage(res.error || 'WebAuthn biometric authentication was not completed.');
+      } else {
+        setSuccessMessage('Biometric passkey verified. Access granted.');
       }
-    }, 1600);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Passkey verification failed.');
+    } finally {
+      setIsPasskeyAuthenticating(false);
+    }
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 relative z-20">
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        {/* Left Column: Platform Branding & Multi-Biometric Pillars */}
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 relative z-20 text-left">
+      <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        {/* Left Column: Platform Branding */}
         <div className="lg:col-span-5 space-y-6 text-left">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-synapse-cyan/10 border border-synapse-cyan/30 text-synapse-cyan text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Synapse Enterprise Security OS • Multi-Biometric Clearance</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 text-cyan-400 text-xs font-semibold">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Enterprise Security & Intelligence OS</span>
           </div>
 
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-synapse-cyan to-synapse-purple p-0.5 shadow-[0_0_20px_rgba(0,242,254,0.4)]">
-                <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-synapse-cyan">
-                  <Zap className="w-6 h-6 animate-pulse-glow" />
-                </div>
+              <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-cyan-400 shadow-sm">
+                <Shield className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-synapse-cyan tracking-tight">
+                <h1 className="text-3xl font-extrabold text-white tracking-tight">
                   SYNAPSE
                 </h1>
-                <span className="text-xs font-bold text-slate-400 tracking-widest uppercase">
-                  Cognitive Enterprise Intelligence OS
+                <span className="text-xs font-bold text-slate-400 tracking-wider uppercase">
+                  Enterprise Platform
                 </span>
               </div>
             </div>
 
             <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-              Authenticate using your facial biometrics, fingerprint sensor, or corporate credentials to access cross-document intelligence, fraud audit matrix, and meeting minutes synthesis.
+              Authenticate using your enterprise credentials or WebAuthn platform passkeys (Windows Hello, Touch ID, Face ID, or Security Keys) to access protected intelligence vaults.
             </p>
           </div>
 
-          {/* Biometric Verification Methods Card */}
-          <div className="space-y-2.5 p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-              Supported Authentication Channels:
-            </span>
-
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => setIsFaceModalOpen(true)}
-                className="w-full p-3 rounded-xl bg-slate-950 border border-synapse-cyan/30 hover:border-synapse-cyan text-left text-xs text-white transition-all flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-synapse-cyan/10 text-synapse-cyan">
-                    <Scan className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <div>
-                    <strong className="block text-white">Live Face Recognition Scan</strong>
-                    <span className="text-[10px] text-slate-400">Camera vector matching against biometric vault</span>
-                  </div>
-                </div>
-                <Badge variant="cyan" size="sm">Camera Scan</Badge>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleFingerprintScan}
-                disabled={isFingerprintScanning}
-                className="w-full p-3 rounded-xl bg-slate-950 border border-purple-500/30 hover:border-purple-400 text-left text-xs text-white transition-all flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
-                    <Fingerprint className={`w-4 h-4 ${isFingerprintScanning ? 'animate-pulse text-synapse-cyan' : ''}`} />
-                  </div>
-                  <div>
-                    <strong className="block text-white">
-                      {isFingerprintScanning ? 'Scanning Sensor...' : 'Fingerprint / Touch Biometrics'}
-                    </strong>
-                    <span className="text-[10px] text-slate-400">Hardware token or biometric touch sensor</span>
-                  </div>
-                </div>
-                <Badge variant="purple" size="sm">
-                  {isFingerprintScanning ? 'Verifying...' : 'Touch ID'}
-                </Badge>
-              </button>
+          {/* WebAuthn Hardware Passkey Card */}
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <KeyRound className="w-4 h-4 text-cyan-400" />
+                <span>WebAuthn / Passkeys Ready</span>
+              </span>
+              <Badge variant={isPlatformBiometricAvailable ? 'emerald' : 'amber'} size="sm">
+                {isPlatformBiometricAvailable ? 'Hardware Available' : 'FIDO2 Supported'}
+              </Badge>
             </div>
+
+            <p className="text-[11px] text-slate-400">
+              One-click biometric verification using your device's built-in platform authenticator.
+            </p>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handlePasskeyLogin}
+              isLoading={isPasskeyAuthenticating}
+              className="w-full justify-center border-cyan-500/30 text-white hover:border-cyan-400 hover:bg-slate-800"
+              leftIcon={<Fingerprint className="w-4 h-4 text-cyan-400" />}
+            >
+              Sign In with Windows Hello / Touch ID
+            </Button>
           </div>
         </div>
 
-        {/* Right Column: Credential Authentication & Dynamic Team Provisioning Form */}
+        {/* Right Column: Credential Authentication Form */}
         <div className="lg:col-span-7">
-          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-synapse-cyan/30 shadow-2xl relative bg-slate-950/80 backdrop-blur-2xl">
+          <div className="p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-2xl relative bg-slate-950/90 backdrop-blur-2xl">
             {/* Header Tabs */}
-            <div className="flex items-center gap-2 p-1 bg-slate-900/90 rounded-2xl border border-slate-800 mb-6">
+            <div className="flex items-center gap-2 p-1 bg-slate-900 rounded-xl border border-slate-800 mb-6">
               <button
                 type="button"
                 onClick={() => {
                   setTab('login');
                   setErrorMessage(null);
                 }}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                   tab === 'login'
-                    ? 'bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 shadow-md'
+                    ? 'bg-slate-800 text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -199,17 +173,17 @@ export const AuthPortal: React.FC = () => {
                   setTab('register');
                   setErrorMessage(null);
                 }}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                   tab === 'register'
-                    ? 'bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 shadow-md'
+                    ? 'bg-slate-800 text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Create Account & Department
+                Provision Employee Account
               </button>
             </div>
 
-            {/* Error / Success Feedback Banners */}
+            {/* Error / Success Feedback */}
             {errorMessage && (
               <div className="mb-4 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-300 animate-in fade-in">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
@@ -229,7 +203,7 @@ export const AuthPortal: React.FC = () => {
                 <>
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-synapse-cyan" />
+                      <User className="w-3.5 h-3.5 text-cyan-400" />
                       <span>Full Employee Name</span>
                     </label>
                     <input
@@ -238,72 +212,50 @@ export const AuthPortal: React.FC = () => {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Jordan Sterling"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
                     />
                   </div>
 
-                  {/* Team & Department Creation Options */}
-                  <div className="space-y-2 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                        <Building className="w-3.5 h-3.5 text-purple-400" />
-                        <span>Team & Department Assignment</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setIsCreatingNewTeam(!isCreatingNewTeam)}
-                        className="text-[11px] text-synapse-cyan hover:underline font-bold flex items-center gap-1"
-                      >
-                        <Plus className="w-3 h-3" />
-                        <span>{isCreatingNewTeam ? 'Select Existing Team' : 'Create New Team'}</span>
-                      </button>
-                    </div>
-
-                    {!isCreatingNewTeam ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300">Department</label>
                       <select
                         value={selectedTeam}
                         onChange={(e) => setSelectedTeam(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50"
                       >
-                        {TEAMS_LIST.map((team) => (
-                          <option key={team.id} value={team.id}>
-                            {team.name} ({team.code}) • {team.lead}
-                          </option>
+                        {TEAMS_LIST.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
                         ))}
                       </select>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                        <input
-                          type="text"
-                          required
-                          value={newTeamName}
-                          onChange={(e) => setNewTeamName(e.target.value)}
-                          placeholder="New Team Name (e.g. Risk Ops)"
-                          className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
-                        />
-                        <input
-                          type="text"
-                          required
-                          value={newDepartmentName}
-                          onChange={(e) => setNewDepartmentName(e.target.value)}
-                          placeholder="Department (e.g. Corporate Finance)"
-                          className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
-                        />
-                      </div>
-                    )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300">RBAC Role</label>
+                      <select
+                        value={selectedRbacRole}
+                        onChange={(e) => setSelectedRbacRole(e.target.value as UserRbacRole)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50"
+                      >
+                        <option value="Employee">Employee</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Security Analyst">Security Analyst</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Legal">Legal</option>
+                        <option value="Executive">Executive</option>
+                        <option value="Administrator">Administrator</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Role / Designation</span>
-                    </label>
+                    <label className="text-xs font-semibold text-slate-300">Role / Designation</label>
                     <input
                       type="text"
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
                       placeholder="e.g. Senior Security Specialist"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
                     />
                   </div>
                 </>
@@ -311,7 +263,7 @@ export const AuthPortal: React.FC = () => {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-synapse-cyan" />
+                  <Mail className="w-3.5 h-3.5 text-cyan-400" />
                   <span>Enterprise Email</span>
                 </label>
                 <input
@@ -320,18 +272,18 @@ export const AuthPortal: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="alex.sterling@synapse-ai.io"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-synapse-cyan" />
+                    <Lock className="w-3.5 h-3.5 text-cyan-400" />
                     <span>Password</span>
                   </label>
                   {tab === 'login' && (
-                    <span className="text-[10px] text-synapse-cyan cursor-pointer hover:underline">
+                    <span className="text-[10px] text-cyan-400 cursor-pointer hover:underline">
                       Default: Synapse#2026
                     </span>
                   )}
@@ -343,7 +295,7 @@ export const AuthPortal: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-4 pr-11 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-4 pr-11 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
                   />
                   <button
                     type="button"
@@ -362,13 +314,13 @@ export const AuthPortal: React.FC = () => {
                 className="w-full py-3 mt-2"
                 rightIcon={<ArrowRight className="w-4 h-4" />}
               >
-                {tab === 'login' ? 'Authenticate & Enter' : 'Provision Employee Account'}
+                {tab === 'login' ? 'Authenticate & Enter Vault' : 'Provision Employee Account'}
               </Button>
 
               <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-[11px] text-slate-400">
                 <span className="flex items-center gap-1 text-emerald-400">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>AES-256 Biometric Vault</span>
+                  <span>AES-256 Vault Encryption</span>
                 </span>
                 <span>SOC2 Type II Clearance</span>
               </div>
@@ -376,13 +328,6 @@ export const AuthPortal: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Face Recognition Biometric Modal */}
-      <FaceRecognitionModal
-        isOpen={isFaceModalOpen}
-        onClose={() => setIsFaceModalOpen(false)}
-        mode="login"
-      />
     </div>
   );
 };

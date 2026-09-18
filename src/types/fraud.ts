@@ -1,27 +1,75 @@
 export type RiskSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 
+export type TransactionStatus =
+  | 'FLAGGED'
+  | 'UNDER_INVESTIGATION'
+  | 'ESCALATED'
+  | 'REVIEWED'
+  | 'DISMISSED'
+  | 'BLOCKED'
+  | 'VERIFIED';
+
+export type PaymentMethod =
+  | 'Wire Transfer'
+  | 'ACH Transfer'
+  | 'SWIFT International'
+  | 'Corporate Card'
+  | 'Cryptocurrency Gateway'
+  | 'Treasury Direct';
+
+export interface AnomalyBreakdown {
+  unusualAmount: { isAnomaly: boolean; score: number; details: string };
+  transactionVelocity: { isAnomaly: boolean; score: number; details: string };
+  unusualCountry: { isAnomaly: boolean; score: number; details: string };
+  unusualDeviceOrIP: { isAnomaly: boolean; score: number; details: string };
+  unusualTransactionTime: { isAnomaly: boolean; score: number; details: string };
+  repeatedTransfers: { isAnomaly: boolean; score: number; details: string };
+  abnormalBehavior: { isAnomaly: boolean; score: number; details: string };
+}
+
+export interface InvestigationNote {
+  id: string;
+  authorEmployeeId: string;
+  authorName: string;
+  timestamp: string;
+  note: string;
+  actionTaken?: string;
+}
+
 export interface TransactionRecord {
   id: string;
   timestamp: string;
   accountSender: string;
+  senderName?: string;
   accountRecipient: string;
+  recipientName?: string;
   senderLocation: string;
   recipientLocation: string;
+  country: string;
   amount: number;
   currency: string;
+  paymentMethod: PaymentMethod;
+  merchant: string;
   merchantCategory: string;
+  device: string;
   deviceFingerprint: string;
   ipAddress: string;
   riskScore: number; // 0 - 100
+  riskLevel: RiskSeverity;
   severity: RiskSeverity;
+  riskReasons: string[];
   flagReasons: string[];
-  status: 'FLAGGED' | 'VERIFIED' | 'UNDER_REVIEW' | 'BLOCKED';
+  status: TransactionStatus;
   anomalyFactors: {
     velocityFactor: number;
     amountAnomaly: number;
     geoMismatch: boolean;
     knownBlacklistIP: boolean;
   };
+  anomalyBreakdown?: AnomalyBreakdown;
+  investigationNotes?: InvestigationNote[];
+  assignedInvestigator?: string;
+  lastUpdated?: string;
 }
 
 export interface FraudAnalysisSummary {
@@ -94,4 +142,3 @@ export interface OmniFraudAuditResult {
   executiveForensicSummary: string;
   recommendations: string[];
 }
-

@@ -73,6 +73,7 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
 }) => {
   const pathname = usePathname();
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false); // Live anime character visible and interactive
   const [speechText, setSpeechText] = useState(
     SYNAPSE_GUIDE_SECTIONS[pathname]?.speech || interactiveHoverPhrases[0]
   );
@@ -89,6 +90,7 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
   const availableVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const lastAnnouncedPath = useRef<string>('');
+  const announcedPaths = useRef<Set<string>>(new Set());
 
   // Unlock browser speech synthesis audio context on first interaction
   useEffect(() => {
@@ -195,7 +197,7 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
     [speechText, voiceMuted]
   );
 
-  // 1. Proactive Tab / Route Navigation Commentary
+  // Module-specific speech - only once per LOGIN SESSION per module
   useEffect(() => {
     if (!pathname || pathname === lastAnnouncedPath.current) return;
     lastAnnouncedPath.current = pathname;
@@ -205,11 +207,21 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
       setActiveTitle(section.title);
       setActiveCategory(section.category);
       setSpeechText(section.speech);
-      // Wait slightly for page transition render, then speak aloud
-      const timer = setTimeout(() => {
-        speakVoice(section.speech);
-      }, 300);
-      return () => clearTimeout(timer);
+      
+      // Check if this path was announced in this login session
+      const loginSessionKey = `speech-announced-${pathname}`;
+      const hasSpokenThisLogin = sessionStorage.getItem(loginSessionKey);
+      
+      if (!hasSpokenThisLogin) {
+        // Mark as announced for this login session
+        sessionStorage.setItem(loginSessionKey, 'true');
+        
+        // Speak the module description
+        const timer = setTimeout(() => {
+          speakVoice(section.speech);
+        }, 500);
+        return () => clearTimeout(timer);
+      }
     }
   }, [pathname, speakVoice]);
 
@@ -240,38 +252,17 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
     return () => window.removeEventListener('synapse-companion-guide', handleCustomGuide);
   }, [speakVoice]);
 
-  // Live Instant Hover Reaction (Speaks current section or next phrase on hover)
+  // Live Instant Hover Reaction (Visual only - no auto-speak on hover)
   const handleMouseEnter = () => {
     setIsHovered(true);
-
-    const now = Date.now();
-    if (now - lastHoverSpeakTime.current > 1200) {
-      lastHoverSpeakTime.current = now;
-      const section = SYNAPSE_GUIDE_SECTIONS[pathname];
-      const phrase = section ? section.speech : interactiveHoverPhrases[phraseIndexRef.current % interactiveHoverPhrases.length];
-      phraseIndexRef.current += 1;
-      setSpeechText(phrase);
-      speakVoice(phrase);
-    }
+    // Removed auto-speak on hover - user can click "Speak" button manually
   };
 
   const handleMouseLeave = () => {
     setIsHovered(false);
   };
 
-  // Periodic 5-Minute Proactive Voice Reminder
-  useEffect(() => {
-    const FIVE_MINUTES_MS = 5 * 60 * 1000;
-
-    const interval = setInterval(() => {
-      const section = SYNAPSE_GUIDE_SECTIONS[pathname];
-      const randomPhrase = section ? section.speech : periodicReminders[Math.floor(Math.random() * periodicReminders.length)];
-      setSpeechText(randomPhrase);
-      speakVoice(randomPhrase);
-    }, FIVE_MINUTES_MS);
-
-    return () => clearInterval(interval);
-  }, [pathname, speakVoice]);
+  // Disable automatic periodic reminders - user requested speech only when entering modules
 
   const handleCharacterClick = () => {
     const phrase = "Opening your AI Multi-Modal Workspace now!";
@@ -284,6 +275,29 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
       }, 150);
     }
   };
+
+  if (isMinimized) {
+    return (
+      <div className={cn('fixed bottom-4 right-4 z-40 flex items-center gap-2', className)}>
+        <button
+          onClick={() => {
+            if (onOpenAILLM) onOpenAILLM('chat');
+          }}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-synapse-cyan/40 text-synapse-cyan shadow-lg backdrop-blur-md text-xs font-semibold hover:border-synapse-cyan transition-all"
+        >
+          <Bot className="w-4 h-4" />
+          <span>AI Assistant</span>
+        </button>
+        <button
+          onClick={() => setIsMinimized(false)}
+          className="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-all text-xs"
+          title="Expand Live Avatar"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -377,6 +391,17 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
                   ) : (
                     <Volume2 className="w-3.5 h-3.5 text-synapse-cyan" />
                   )}
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMinimized(true);
+                  }}
+                  className="text-slate-400 hover:text-white p-0.5 rounded transition-colors"
+                  title="Minimize Avatar"
+                >
+                  ×
                 </button>
               </div>
             </div>

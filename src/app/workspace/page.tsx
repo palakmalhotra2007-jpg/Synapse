@@ -311,6 +311,10 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
         size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
         type: file.name.endsWith('.pdf') ? 'pdf' : file.name.endsWith('.docx') ? 'docx' : 'csv',
         uploadedAt: new Date().toISOString(),
+        vaultId: 'my_team',
+        classification: 'INTERNAL RESTRICTED',
+        securityLevel: 'Level 1 Standard',
+        status: 'READY',
         content: 'Uploaded file contents indexed for RAG vector search.',
       };
       setAttachedDocs((prev) => [...prev, newDoc]);
@@ -772,7 +776,7 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUploadSuccess={handleDocumentUploaded}
-        defaultTeamId={(user?.teamId as TeamId) || 'all'}
+        defaultVaultId="my_team"
       />
 
       {/* Image Vision, Chart & Duplicate Detection Modal */}
