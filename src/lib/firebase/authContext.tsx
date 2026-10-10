@@ -29,10 +29,14 @@ export interface UserSession {
   authMethod: 'PASSWORD' | 'WEBAUTHN_PASSKEY' | 'PLATFORM_BIOMETRIC' | 'PERSONA';
 }
 
+export type ExecutionMode = 'preset' | 'autonomous';
+
 interface AuthContextType {
   user: UserProfile | null;
   session: UserSession | null;
   loading: boolean;
+  executionMode: ExecutionMode;
+  setExecutionMode: (mode: ExecutionMode) => void;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginWithPasskey: (email?: string) => Promise<{ success: boolean; error?: string }>;
   registerPasskey: (name?: string) => Promise<{ success: boolean; passkey?: PasskeyCredential; error?: string }>;
@@ -59,6 +63,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
+  executionMode: 'preset',
+  setExecutionMode: () => {},
   login: async () => ({ success: false }),
   loginWithPasskey: async () => ({ success: false }),
   registerPasskey: async () => ({ success: false }),
@@ -79,53 +85,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<UserSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPlatformBiometricAvailable, setIsPlatformBiometricAvailable] = useState(false);
+  const [executionMode, setExecutionModeState] = useState<ExecutionMode>('preset');
+
+  const setExecutionMode = (mode: ExecutionMode) => {
+    setExecutionModeState(mode);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('synapse_execution_mode', mode);
+      }
+    } catch (e) {}
+  };
+
+  // Restore execution mode from localStorage
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const savedMode = localStorage.getItem('synapse_execution_mode') as ExecutionMode;
+        if (savedMode === 'preset' || savedMode === 'autonomous') {
+          setExecutionModeState(savedMode);
+        }
+      }
+    } catch (e) {}
+  }, []);
 
   // Check hardware WebAuthn capabilities on mount
   useEffect(() => {
     checkWebAuthnSupport().then((support) => {
       setIsPlatformBiometricAvailable(support.isPlatformAvailable);
     });
-  }, []);
-
-  // Restore session from localStorage on initial load
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const savedUser = localStorage.getItem('synapse_auth_user');
-        const savedSession = localStorage.getItem('synapse_auth_session');
-
-        if (savedUser && savedUser !== 'undefined' && savedSession && savedSession !== 'undefined') {
-          const parsedUser: UserProfile = JSON.parse(savedUser);
-          const allUsers = getStoredUsers();
-          const matched = allUsers.find((u) => u.uid === parsedUser.uid);
-          if (matched) {
-            const { passwordHash: _, ...freshProfile } = matched;
-            setUser(freshProfile);
-          } else {
-            setUser(parsedUser);
-          }
-          setSession(JSON.parse(savedSession));
-        } else {
-          // Initialize with default primary enterprise user
-          const allUsers = getStoredUsers();
-          const defaultUser = allUsers[0] || INITIAL_USERS[0];
-          const { passwordHash: _, ...freshProfile } = defaultUser;
-          const sess = createSession(freshProfile, 'PASSWORD');
-          setUser(freshProfile);
-          setSession(sess);
-          localStorage.setItem('synapse_auth_user', JSON.stringify(freshProfile));
-          localStorage.setItem('synapse_auth_session', JSON.stringify(sess));
-          sessionStorage.setItem('synapse-authenticated', 'true');
-        }
-      }
-    } catch (err) {
-      console.warn('Session restoration error:', err);
-      const defaultUser = INITIAL_USERS[0];
-      const { passwordHash: _, ...freshProfile } = defaultUser;
-      setUser(freshProfile);
-    } finally {
-      setLoading(false);
-    }
   }, []);
 
   const createSession = (
@@ -170,14 +157,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setUser(updatedProfile);
     setSession(newSession);
-    localStorage.setItem('synapse_auth_user', JSON.stringify(updatedProfile));
-    localStorage.setItem('synapse_auth_session', JSON.stringify(newSession));
-
-    if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('synapse_auth_user', JSON.stringify(updatedProfile));
+      localStorage.setItem('synapse_auth_session', JSON.stringify(newSession));
       sessionStorage.setItem('synapse-authenticated', 'true');
-    }
+    } catch (e) {}
+
     return newSession;
   };
+
+  // Always open authentication page when opening the website
+  useEffect(() => {
+    setUser(null);
+    setSession(null);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('synapse_auth_user');
+        localStorage.removeItem('synapse_auth_session');
+        sessionStorage.removeItem('synapse-authenticated');
+      }
+    } catch (err) {
+      console.warn('Session reset error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const login = async (
     email: string,
@@ -372,7 +376,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInDemoUser = () => {
-    loginWithPersona('usr-exec-001');
+    loginWithPersona('usr-eng-001');
   };
 
   const signOut = () => {
@@ -437,6 +441,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         session,
         loading,
+        executionMode,
+        setExecutionMode,
         login,
         loginWithPasskey,
         registerPasskey,

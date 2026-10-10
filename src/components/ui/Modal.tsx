@@ -42,14 +42,14 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
         onClick={onClose}
       />
 
       {/* Modal Dialog */}
       <div
         className={cn(
-          'relative w-full glass-panel rounded-2xl border border-synapse-cyan/30 bg-slate-900/95 shadow-2xl z-10 overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200',
+          'relative w-full rounded-2xl border border-slate-200 bg-white shadow-xl z-10 overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200',
           maxWidth === 'sm' && 'max-w-sm',
           maxWidth === 'md' && 'max-w-md',
           maxWidth === 'lg' && 'max-w-lg',
@@ -63,11 +63,11 @@ export const Modal: React.FC<ModalProps> = ({
 
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/80">
-            <h3 className="text-lg font-bold text-white tracking-wide">{title}</h3>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h3 className="text-base font-bold text-slate-900">{title}</h3>
             <button
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -75,7 +75,7 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto custom-scrollbar flex-1">{children}</div>
+        <div className="p-6 overflow-y-auto custom-scrollbar flex-1 text-slate-800">{children}</div>
       </div>
     </div>
   );

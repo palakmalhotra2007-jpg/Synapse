@@ -205,7 +205,7 @@ export const ImageVisionModal: React.FC<ImageVisionModalProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Image Canvas & Dropzone */}
           <div className="space-y-4">
-            <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950/80 aspect-video flex items-center justify-center group shadow-inner">
+            <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-video flex items-center justify-center group shadow-xs">
               {selectedImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -221,7 +221,7 @@ export const ImageVisionModal: React.FC<ImageVisionModalProps> = ({
               )}
 
               {/* Image Title Badge */}
-              <div className="absolute bottom-2 left-2 right-2 p-2 rounded-xl bg-slate-950/80 backdrop-blur-md border border-slate-800/80 flex items-center justify-between text-[11px]">
+              <div className="absolute bottom-2 left-2 right-2 p-2 rounded-xl bg-slate-900/80 backdrop-blur-md border border-slate-700/80 flex items-center justify-between text-[11px]">
                 <span className="font-bold text-white truncate max-w-[250px]">{selectedImageName}</span>
                 <Badge variant="cyan" size="sm">
                   {activeMode.replace('_', ' ').toUpperCase()}
@@ -240,7 +240,7 @@ export const ImageVisionModal: React.FC<ImageVisionModalProps> = ({
           {/* Right: Question Prompt & AI Vision Results */}
           <div className="space-y-4 flex flex-col justify-between">
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-300 block">
+              <label className="text-xs font-bold text-slate-700 block">
                 Ask Synapse Vision Model about this image:
               </label>
               <div className="relative flex items-center">
@@ -249,31 +249,31 @@ export const ImageVisionModal: React.FC<ImageVisionModalProps> = ({
                   value={userPrompt}
                   onChange={(e) => setUserPrompt(e.target.value)}
                   placeholder="e.g. 'What components are visible?' or 'Explain this graph.'"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50 pr-12"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 pr-12 shadow-xs"
                 />
                 <button
                   onClick={handleRunAnalysis}
                   disabled={isAnalyzing}
-                  className="absolute right-1.5 p-2 bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 font-bold rounded-lg hover:shadow-md disabled:opacity-40 transition-all"
+                  className="absolute right-1.5 p-2 bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-bold rounded-lg hover:shadow-md disabled:opacity-40 transition-all"
                 >
                   <Send className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               {/* Vision Results Area */}
-              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 min-h-[220px] max-h-[320px] overflow-y-auto custom-scrollbar">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 min-h-[220px] max-h-[320px] overflow-y-auto custom-scrollbar">
                 {isAnalyzing ? (
                   <div className="h-44 flex flex-col items-center justify-center space-y-3 text-center">
-                    <div className="w-8 h-8 border-2 border-synapse-cyan border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs text-slate-400 animate-pulse font-medium">
+                    <div className="w-8 h-8 border-2 border-sky-600 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-xs text-slate-600 animate-pulse font-medium">
                       Neural Vision Engine computing visual features & structure...
                     </span>
                   </div>
                 ) : visionResponse ? (
                   <div className="space-y-4 animate-in fade-in">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-synapse-cyan" />
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-sky-600" />
                         <span>{visionResponse.title}</span>
                       </h4>
                       <Badge variant="emerald" size="sm">
@@ -281,26 +281,26 @@ export const ImageVisionModal: React.FC<ImageVisionModalProps> = ({
                       </Badge>
                     </div>
 
-                    <p className="text-xs text-slate-300 leading-relaxed">
+                    <p className="text-xs text-slate-700 leading-relaxed">
                       {visionResponse.description}
                     </p>
 
                     {/* Chart Extracted Metrics */}
                     {visionResponse.chartData && (
-                      <div className="space-y-2 p-3 rounded-xl bg-slate-950 border border-slate-800">
-                        <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">
+                      <div className="space-y-2 p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
+                        <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">
                           Extracted Chart Metric Velocity:
                         </span>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                           {visionResponse.chartData.extractedMetrics.map((m, idx) => (
-                            <div key={idx} className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-[11px]">
-                              <span className="text-slate-400 block truncate">{m.label}</span>
+                            <div key={idx} className="p-2 rounded-lg bg-slate-50 border border-slate-200/80 text-[11px]">
+                              <span className="text-slate-500 block truncate">{m.label}</span>
                               <div className="flex items-baseline justify-between mt-0.5">
-                                <strong className="text-white font-bold">{m.value}</strong>
+                                <strong className="text-slate-900 font-bold">{m.value}</strong>
                                 {m.changePercent && (
                                   <span
                                     className={`text-[9px] font-bold ${
-                                      m.changePercent > 0 ? 'text-emerald-400' : 'text-rose-400'
+                                      m.changePercent > 0 ? 'text-emerald-600' : 'text-rose-600'
                                     }`}
                                   >
                                     {m.changePercent > 0 ? `+${m.changePercent}%` : `${m.changePercent}%`}
@@ -316,19 +316,19 @@ export const ImageVisionModal: React.FC<ImageVisionModalProps> = ({
                     {/* Detected Visual Components */}
                     {visionResponse.visualComponents && visionResponse.visualComponents.length > 0 && (
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-synapse-cyan uppercase tracking-wider block">
+                        <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider block">
                           Identified Visual Components:
                         </span>
                         <div className="space-y-1.5">
                           {visionResponse.visualComponents.map((c) => (
-                            <div key={c.id} className="p-2 rounded-xl bg-slate-950/80 border border-slate-800 text-xs space-y-0.5">
+                            <div key={c.id} className="p-2 rounded-xl bg-white border border-slate-200 text-xs space-y-0.5 shadow-xs">
                               <div className="flex items-center justify-between">
-                                <strong className="text-white">{c.name}</strong>
-                                <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                                <strong className="text-slate-900">{c.name}</strong>
+                                <span className="text-[10px] text-emerald-600 font-mono font-bold">
                                   {c.confidence}% Match
                                 </span>
                               </div>
-                              <p className="text-[11px] text-slate-400">{c.description}</p>
+                              <p className="text-[11px] text-slate-600">{c.description}</p>
                             </div>
                           ))}
                         </div>
@@ -338,19 +338,19 @@ export const ImageVisionModal: React.FC<ImageVisionModalProps> = ({
                     {/* Similar Image Matches */}
                     {visionResponse.similarMatches && visionResponse.similarMatches.length > 0 && (
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block">
+                        <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">
                           Similar & Duplicate Image Matches:
                         </span>
                         <div className="space-y-2">
                           {visionResponse.similarMatches.map((m) => (
-                            <div key={m.id} className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+                            <div key={m.id} className="p-2.5 rounded-xl bg-white border border-slate-200 text-xs space-y-1 shadow-xs">
                               <div className="flex items-center justify-between">
-                                <span className="font-bold text-white truncate max-w-[200px]">{m.title}</span>
+                                <span className="font-bold text-slate-900 truncate max-w-[200px]">{m.title}</span>
                                 <Badge variant={m.similarityScore > 90 ? 'rose' : 'amber'} size="sm">
                                   {m.similarityScore}% {m.matchType.replace('_', ' ')}
                                 </Badge>
                               </div>
-                              <p className="text-[11px] text-slate-400">{m.varianceDetails}</p>
+                              <p className="text-[11px] text-slate-600">{m.varianceDetails}</p>
                               <div className="flex items-center gap-2 text-[10px] text-slate-500">
                                 <span>Vault: {m.teamName.split(' ')[0]}</span>
                                 <span>•</span>
@@ -364,7 +364,7 @@ export const ImageVisionModal: React.FC<ImageVisionModalProps> = ({
                   </div>
                 ) : (
                   <div className="h-44 flex flex-col items-center justify-center space-y-2 text-center text-slate-500">
-                    <Sparkles className="w-6 h-6 text-synapse-cyan/60" />
+                    <Sparkles className="w-6 h-6 text-sky-600/60" />
                     <span>Click "Run Visual Understanding" or press Send to inspect this image</span>
                   </div>
                 )}

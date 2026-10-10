@@ -52,10 +52,10 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
       onDrop={handleDrop}
       onClick={() => fileInputRef.current?.click()}
       className={cn(
-        'relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center gap-3 group',
+        'relative border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center gap-3 group',
         isDragging
-          ? 'border-synapse-cyan bg-synapse-cyan/10 shadow-[0_0_25px_rgba(0,242,254,0.2)]'
-          : 'border-slate-800 bg-slate-900/40 hover:border-synapse-cyan/50 hover:bg-slate-900/80'
+          ? 'border-sky-500 bg-sky-50 shadow-md'
+          : 'border-slate-200 bg-slate-50/60 hover:border-sky-300 hover:bg-sky-50/40'
       )}
     >
       <input
@@ -66,19 +66,19 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
         className="hidden"
       />
 
-      <div className="w-14 h-14 rounded-2xl bg-synapse-cyan/10 border border-synapse-cyan/30 flex items-center justify-center text-synapse-cyan group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(0,242,254,0.4)] transition-all">
-        <UploadCloud className="w-7 h-7" />
+      <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 group-hover:scale-105 transition-all shadow-xs">
+        <UploadCloud className="w-6 h-6" />
       </div>
 
       <div>
-        <p className="text-sm font-semibold text-slate-200 group-hover:text-synapse-cyan transition-colors">
+        <p className="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-sky-700 transition-colors">
           {currentFileName ? `Selected File: ${currentFileName}` : label}
         </p>
-        <p className="text-xs text-slate-400 mt-1">{sublabel}</p>
+        <p className="text-xs text-slate-500 mt-1">{sublabel}</p>
       </div>
 
       {currentFileName && (
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full text-xs font-medium mt-1">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full text-xs font-bold mt-1 shadow-2xs">
           <CheckCircle2 className="w-3.5 h-3.5" />
           <span>Ready for AI Processing</span>
         </div>

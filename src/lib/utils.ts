@@ -28,3 +28,16 @@ export function truncateText(text: string, maxLength: number = 80): string {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength) + '...';
 }
+
+export function getRelativeDate(daysOffset: number = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysOffset);
+  return d.toISOString().split('T')[0];
+}
+
+export function getRelativeTimestamp(daysOffset: number = 0, hoursOffset: number = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysOffset);
+  d.setHours(d.getHours() + hoursOffset);
+  return d.toISOString();
+}

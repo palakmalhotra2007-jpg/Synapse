@@ -23,193 +23,138 @@ export const TEAMS_LIST: Team[] = [
     code: 'ENG',
     badgeVariant: 'cyan',
     description: 'LLM fine-tuning, vector pipelines, distributed inference clusters, and core platform API architecture.',
-    lead: 'Marcus Vance',
-    memberCount: 28,
+    lead: 'Charvi Sharma',
+    memberCount: 4,
     documentCount: 64,
     permissions: ['workspace', 'neural_models', 'documents', 'api_access', 'meetings'],
   },
-  {
-    id: 'fraud_security',
-    name: 'Cyber & Financial Fraud Ops',
-    code: 'SEC',
-    badgeVariant: 'rose',
-    description: 'Real-time transaction anomaly vectoring, AML screening, velocity monitoring, and forensics.',
-    lead: 'Elena Rostova',
-    memberCount: 16,
-    documentCount: 42,
-    permissions: ['fraud', 'security_audit', 'workspace', 'documents', 'meetings'],
-  },
-  {
-    id: 'finance_risk',
-    name: 'Finance & Risk Analytics',
-    code: 'FIN',
-    badgeVariant: 'amber',
-    description: 'Enterprise treasury analytics, P&L forecasting, liquidity risk assessment, and SEC audit compliance.',
-    lead: 'Sophia Chen',
-    memberCount: 14,
-    documentCount: 38,
-    permissions: ['fraud', 'workspace', 'documents', 'meetings', 'financial_reports'],
-  },
-  {
-    id: 'legal_compliance',
-    name: 'Legal, Contracts & Compliance',
-    code: 'LGL',
-    badgeVariant: 'purple',
-    description: 'Master Service Agreements, regulatory IP compliance, liability caps, and automated clause extraction.',
-    lead: 'David Miller',
-    memberCount: 12,
-    documentCount: 56,
-    permissions: ['documents', 'contract_diff', 'workspace', 'meetings'],
-  },
-  {
-    id: 'executive_ops',
-    name: 'Executive Leadership & Board',
-    code: 'EXEC',
-    badgeVariant: 'emerald',
-    description: 'Cross-functional orchestration, board governance, strategic capital allocation, and enterprise SLA oversight.',
-    lead: 'Alex Sterling',
-    memberCount: 8,
-    documentCount: 75,
-    permissions: ['admin', 'workspace', 'fraud', 'meetings', 'documents', 'security_audit', 'financial_reports'],
-  },
 ];
 
-// Initial Verified Corporate Employees Database
+// Initial Verified Corporate Employees Database (2 Employees in Engineering Team)
+// Initial Verified Corporate Employees Database (4 Employees in Engineering Team: Charvi, Tanisha, Anshika, Bhavya)
 export const INITIAL_USERS: StoredUser[] = [
   {
-    uid: 'usr-exec-001',
-    employeeId: 'EMP-EXEC-001',
-    displayName: 'Alex Sterling',
-    email: 'alex.sterling@synapse-ai.io',
+    uid: 'usr-eng-001',
+    employeeId: 'EMP-ENG-001',
+    displayName: 'Charvi Sharma',
+    email: 'charvi@synapse-ai.io',
     passwordHash: 'Synapse#2026',
-    photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    teamId: 'executive_ops',
-    teamName: 'Executive Leadership & Board',
-    department: 'Executive Governance & Strategy',
-    role: 'Chief Technology Officer',
+    photoURL: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    teamId: 'engineering',
+    teamName: 'Engineering & Neural R&D',
+    department: 'Engineering & AI Architecture',
+    role: 'Engineering Lead & Principal AI Architect',
     rbacRole: 'Administrator',
     organization: 'Aegis Global Enterprises',
     phone: '+1 (555) 234-8901',
-    office: 'Building A, Floor 14 (Executive Suite), San Francisco HQ',
-    manager: 'Victoria Vance (Chief Executive Officer)',
+    office: 'Building C, Floor 4 (Neural Lab), San Francisco HQ',
+    manager: 'Engineering Board',
     accessLevel: 'Tier 1 Top Secret',
     securityClearance: 'Level 5 Executive',
     joinedDate: '2023-01-15',
     tokenBalance: 850000,
     status: 'ACTIVE',
     mfaEnabled: true,
-    vaultAccess: ['executive', 'finance', 'legal', 'engineering', 'cyber', 'my_team'],
+    vaultAccess: ['engineering', 'my_team', 'executive', 'finance', 'cyber'],
     permissions: ['admin', 'workspace', 'fraud', 'meetings', 'documents', 'security_audit', 'financial_reports', 'vault_admin', 'user_management'],
-    lastLogin: '2026-09-16T08:30:00Z',
+    lastLogin: '2026-10-07T08:30:00Z',
     passkeys: [
       {
         id: 'pk-01',
-        name: 'Windows Hello (ThinkPad P1 Gen 6)',
-        credentialId: 'cred-win-hello-sterling-994',
+        name: 'Touch ID (MacBook Pro 16" M3 Max)',
+        credentialId: 'cred-mac-touchid-charvi-882',
         publicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...',
-        counter: 42,
-        createdAt: '2026-02-10T11:20:00Z',
-        lastUsedAt: '2026-09-16T08:30:00Z',
+        counter: 64,
+        createdAt: '2026-01-20T14:10:00Z',
+        lastUsedAt: '2026-10-07T08:30:00Z',
         deviceType: 'platform',
         authenticatorAttachment: 'platform',
         browser: 'Google Chrome 128',
-        os: 'Windows (Windows Hello)',
-      },
-      {
-        id: 'pk-02',
-        name: 'YubiKey 5C NFC (Primary Security Key)',
-        credentialId: 'cred-yubikey-sterling-502',
-        publicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...',
-        counter: 18,
-        createdAt: '2026-04-15T09:12:00Z',
-        lastUsedAt: '2026-09-14T15:40:00Z',
-        deviceType: 'cross-platform',
-        authenticatorAttachment: 'cross-platform',
-        browser: 'Microsoft Edge',
-        os: 'Windows Hardware Key',
+        os: 'macOS (Touch ID)',
       },
     ],
+    faceId: {
+      id: 'face-01',
+      enrolledAt: '2026-01-22T10:00:00Z',
+      vectorHash: 'VEC-HASH-CHARVI-RETINAL-1024',
+      descriptor: 'Charvi Sharma Retinal Mesh Signature',
+      deviceCamera: 'Built-in FaceTime HD Camera',
+    },
     activeSessions: [
       {
         id: 'sess-01',
-        token: 'syn-sess-exec-current',
+        token: 'syn-sess-charvi-current',
         ipAddress: '192.168.1.100 (HQ Secure Gateway)',
         location: 'San Francisco, CA, USA',
-        device: 'ThinkPad P1 Gen 6 Workstation',
+        device: 'MacBook Pro Workstation',
         browser: 'Google Chrome 128',
-        os: 'Windows 11 Enterprise',
-        loginTime: '2026-09-16T08:30:00Z',
-        lastActiveTime: '2026-09-16T17:00:00Z',
+        os: 'macOS Sonoma',
+        loginTime: '2026-10-07T08:30:00Z',
+        lastActiveTime: '2026-10-07T17:00:00Z',
         authMethod: 'WEBAUTHN_PASSKEY',
         isCurrent: true,
-      },
-      {
-        id: 'sess-02',
-        token: 'syn-sess-exec-mobile',
-        ipAddress: '172.56.42.88 (Mobile 5G)',
-        location: 'San Francisco, CA, USA',
-        device: 'iPhone 15 Pro Max',
-        browser: 'Mobile Safari 17.5',
-        os: 'iOS 17.5 (Touch ID / Face ID)',
-        loginTime: '2026-09-15T19:40:00Z',
-        lastActiveTime: '2026-09-15T22:15:00Z',
-        authMethod: 'WEBAUTHN_PASSKEY',
-        isCurrent: false,
       },
     ],
   },
   {
-    uid: 'usr-sec-002',
-    employeeId: 'EMP-SEC-002',
-    displayName: 'Elena Rostova',
-    email: 'elena.rostova@synapse-ai.io',
-    passwordHash: 'FraudGuard#2026',
-    photoURL: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    teamId: 'fraud_security',
-    teamName: 'Cyber & Financial Fraud Ops',
-    department: 'Fraud Risk & Security Forensics',
-    role: 'Chief Financial Officer & Fraud Lead',
-    rbacRole: 'Security Analyst',
+    uid: 'usr-eng-002',
+    employeeId: 'EMP-ENG-002',
+    displayName: 'Tanisha Gupta',
+    email: 'tanisha@synapse-ai.io',
+    passwordHash: 'Synapse#2026',
+    photoURL: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+    teamId: 'engineering',
+    teamName: 'Engineering & Neural R&D',
+    department: 'Engineering & AI Architecture',
+    role: 'Senior Backend & Cloud Infrastructure Engineer',
+    rbacRole: 'Manager',
     organization: 'Aegis Global Enterprises',
     phone: '+1 (555) 345-6789',
-    office: 'Building B, Floor 8 (Cyber Ops Center), San Francisco HQ',
-    manager: 'Alex Sterling (CTO)',
-    accessLevel: 'Tier 1 Top Secret',
+    office: 'Building C, Floor 4 (Distributed Systems Lab), San Francisco HQ',
+    manager: 'Charvi Sharma (Engineering Lead)',
+    accessLevel: 'Tier 2 Confidential',
     securityClearance: 'Level 4 Cyber Forensics',
     joinedDate: '2023-04-01',
     tokenBalance: 620000,
     status: 'ACTIVE',
     mfaEnabled: true,
-    vaultAccess: ['cyber', 'finance', 'my_team'],
-    permissions: ['workspace', 'fraud', 'meetings', 'documents', 'security_audit', 'fraud_investigate', 'freeze_transaction'],
-    lastLogin: '2026-09-16T09:15:00Z',
+    vaultAccess: ['engineering', 'my_team'],
+    permissions: ['workspace', 'meetings', 'documents', 'neural_models', 'api_access'],
+    lastLogin: '2026-10-07T09:15:00Z',
     passkeys: [
       {
-        id: 'pk-03',
-        name: 'Touch ID (MacBook Pro 16" M3 Max)',
-        credentialId: 'cred-mac-touchid-rostova-882',
-        publicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...',
-        counter: 64,
-        createdAt: '2026-01-20T14:10:00Z',
-        lastUsedAt: '2026-09-16T09:15:00Z',
+        id: 'pk-02',
+        name: 'Windows Hello Fingerprint Sensor',
+        credentialId: 'cred-win-fingerprint-tanisha-901',
+        publicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEB...',
+        counter: 32,
+        createdAt: '2026-03-10T09:00:00Z',
+        lastUsedAt: '2026-10-07T09:15:00Z',
         deviceType: 'platform',
         authenticatorAttachment: 'platform',
-        browser: 'Apple Safari 17.4',
-        os: 'macOS (Touch ID / Face ID)',
+        browser: 'Firefox 129',
+        os: 'Windows (Windows Hello)',
       },
     ],
+    faceId: {
+      id: 'face-02',
+      enrolledAt: '2026-03-12T11:20:00Z',
+      vectorHash: 'VEC-HASH-TANISHA-RETINAL-1024',
+      descriptor: 'Tanisha Gupta Retinal Mesh Signature',
+      deviceCamera: 'HD WebCam 1080p',
+    },
     activeSessions: [
       {
-        id: 'sess-03',
-        token: 'syn-sess-sec-current',
-        ipAddress: '192.168.1.104 (SOC VLAN)',
+        id: 'sess-02',
+        token: 'syn-sess-tanisha-current',
+        ipAddress: '192.168.1.104 (Dev VLAN)',
         location: 'San Francisco, CA, USA',
-        device: 'MacBook Pro 16" M3 Max',
-        browser: 'Apple Safari 17.4',
-        os: 'macOS Sonoma',
-        loginTime: '2026-09-16T09:15:00Z',
-        lastActiveTime: '2026-09-16T16:45:00Z',
-        authMethod: 'WEBAUTHN_PASSKEY',
+        device: 'Linux XPS Workstation',
+        browser: 'Firefox 129',
+        os: 'Linux Ubuntu',
+        loginTime: '2026-10-07T09:15:00Z',
+        lastActiveTime: '2026-10-07T16:45:00Z',
+        authMethod: 'PASSWORD',
         isCurrent: true,
       },
     ],
@@ -217,212 +162,58 @@ export const INITIAL_USERS: StoredUser[] = [
   {
     uid: 'usr-eng-003',
     employeeId: 'EMP-ENG-003',
-    displayName: 'Marcus Vance',
-    email: 'marcus.vance@synapse-ai.io',
-    passwordHash: 'NeuralAI#2026',
-    photoURL: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    displayName: 'Anshika Verma',
+    email: 'anshika@synapse-ai.io',
+    passwordHash: 'Synapse#2026',
+    photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     teamId: 'engineering',
     teamName: 'Engineering & Neural R&D',
-    department: 'AI Research & Platform Architecture',
-    role: 'VP of AI Product & Architecture',
+    department: 'Engineering & AI Architecture',
+    role: 'Neural Pipeline & ML Infrastructure Lead',
     rbacRole: 'Manager',
     organization: 'Aegis Global Enterprises',
     phone: '+1 (555) 456-7890',
-    office: 'Building C, Floor 4 (R&D Lab), San Francisco HQ',
-    manager: 'Alex Sterling (CTO)',
+    office: 'Building C, Floor 4 (Neural Lab), San Francisco HQ',
+    manager: 'Charvi Sharma (Engineering Lead)',
     accessLevel: 'Tier 2 Confidential',
-    securityClearance: 'Level 1 General',
+    securityClearance: 'Level 4 Cyber Forensics',
     joinedDate: '2023-06-15',
-    tokenBalance: 490000,
+    tokenBalance: 580000,
     status: 'ACTIVE',
-    mfaEnabled: true,
-    vaultAccess: ['engineering', 'my_team'],
-    permissions: ['workspace', 'meetings', 'documents', 'neural_models', 'api_access'],
-    lastLogin: '2026-09-16T09:40:00Z',
-    passkeys: [
-      {
-        id: 'pk-04',
-        name: 'Linux FIDO2 (Dell XPS 15 Ubuntu)',
-        credentialId: 'cred-linux-fido2-vance-771',
-        publicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...',
-        counter: 29,
-        createdAt: '2026-03-01T10:00:00Z',
-        lastUsedAt: '2026-09-16T09:40:00Z',
-        deviceType: 'platform',
-        authenticatorAttachment: 'platform',
-        browser: 'Mozilla Firefox 129',
-        os: 'Linux (Ubuntu 24.04)',
-      },
-    ],
-    activeSessions: [
-      {
-        id: 'sess-04',
-        token: 'syn-sess-eng-current',
-        ipAddress: '192.168.1.112 (Dev Lab)',
-        location: 'San Francisco, CA, USA',
-        device: 'Dell XPS 15 Workstation',
-        browser: 'Mozilla Firefox 129',
-        os: 'Linux x86_64',
-        loginTime: '2026-09-16T09:40:00Z',
-        lastActiveTime: '2026-09-16T16:50:00Z',
-        authMethod: 'PASSWORD',
-        isCurrent: true,
-      },
-    ],
-  },
-  {
-    uid: 'usr-fin-004',
-    employeeId: 'EMP-FIN-004',
-    displayName: 'Sophia Chen',
-    email: 'sophia.chen@synapse-ai.io',
-    passwordHash: 'Finance#2026',
-    photoURL: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-    teamId: 'finance_risk',
-    teamName: 'Finance & Risk Analytics',
-    department: 'Treasury & Risk Modeling',
-    role: 'Senior Financial Risk Analyst',
-    rbacRole: 'Finance',
-    organization: 'Aegis Global Enterprises',
-    phone: '+1 (555) 567-8901',
-    office: 'Building A, Floor 10 (Finance Wing), San Francisco HQ',
-    manager: 'Elena Rostova (CFO)',
-    accessLevel: 'Tier 2 Confidential',
-    securityClearance: 'Level 3 Financial Risk',
-    joinedDate: '2024-02-01',
-    tokenBalance: 540000,
-    status: 'ACTIVE',
-    mfaEnabled: true,
-    vaultAccess: ['finance', 'my_team'],
-    permissions: ['fraud', 'workspace', 'documents', 'meetings', 'financial_reports'],
-    lastLogin: '2026-09-16T10:12:00Z',
-    passkeys: [
-      {
-        id: 'pk-05',
-        name: 'Windows Hello (HP Elite Dragonfly)',
-        credentialId: 'cred-win-hello-chen-991',
-        publicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...',
-        counter: 51,
-        createdAt: '2026-02-18T16:20:00Z',
-        lastUsedAt: '2026-09-16T10:12:00Z',
-        deviceType: 'platform',
-        authenticatorAttachment: 'platform',
-        browser: 'Microsoft Edge',
-        os: 'Windows (Windows Hello)',
-      },
-    ],
-    activeSessions: [
-      {
-        id: 'sess-05',
-        token: 'syn-sess-fin-current',
-        ipAddress: '192.168.1.120 (Finance VLAN)',
-        location: 'San Francisco, CA, USA',
-        device: 'HP Elite Dragonfly',
-        browser: 'Microsoft Edge',
-        os: 'Windows 11 Pro',
-        loginTime: '2026-09-16T10:12:00Z',
-        lastActiveTime: '2026-09-16T16:30:00Z',
-        authMethod: 'WEBAUTHN_PASSKEY',
-        isCurrent: true,
-      },
-    ],
-  },
-  {
-    uid: 'usr-lgl-005',
-    employeeId: 'EMP-LGL-005',
-    displayName: 'David Miller',
-    email: 'david.miller@synapse-ai.io',
-    passwordHash: 'Legal#2026',
-    photoURL: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    teamId: 'legal_compliance',
-    teamName: 'Legal, Contracts & Compliance',
-    department: 'Corporate Legal & Governance',
-    role: 'Principal Legal Counsel',
-    rbacRole: 'Legal',
-    organization: 'Aegis Global Enterprises',
-    phone: '+1 (555) 678-9012',
-    office: 'Building A, Floor 12 (Legal Chamber), San Francisco HQ',
-    manager: 'Alex Sterling (CTO)',
-    accessLevel: 'Tier 2 Confidential',
-    securityClearance: 'Level 2 Legal Compliance',
-    joinedDate: '2023-09-10',
-    tokenBalance: 410000,
-    status: 'ACTIVE',
-    mfaEnabled: true,
-    vaultAccess: ['legal', 'my_team'],
-    permissions: ['documents', 'contract_diff', 'workspace', 'meetings', 'legal_audit'],
-    lastLogin: '2026-09-16T11:45:00Z',
-    passkeys: [
-      {
-        id: 'pk-06',
-        name: 'Touch ID (MacBook Air 15" M2)',
-        credentialId: 'cred-mac-touchid-miller-982',
-        publicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...',
-        counter: 38,
-        createdAt: '2026-01-25T11:15:00Z',
-        lastUsedAt: '2026-09-16T11:45:00Z',
-        deviceType: 'platform',
-        authenticatorAttachment: 'platform',
-        browser: 'Apple Safari 17.4',
-        os: 'macOS (Touch ID / Face ID)',
-      },
-    ],
-    activeSessions: [
-      {
-        id: 'sess-06',
-        token: 'syn-sess-lgl-current',
-        ipAddress: '192.168.1.130 (Legal Subnet)',
-        location: 'San Francisco, CA, USA',
-        device: 'MacBook Air 15" M2',
-        browser: 'Apple Safari 17.4',
-        os: 'macOS Sonoma',
-        loginTime: '2026-09-16T11:45:00Z',
-        lastActiveTime: '2026-09-16T15:20:00Z',
-        authMethod: 'WEBAUTHN_PASSKEY',
-        isCurrent: true,
-      },
-    ],
-  },
-  {
-    uid: 'usr-emp-006',
-    employeeId: 'EMP-ENG-006',
-    displayName: 'Sarah Connor',
-    email: 'sarah.connor@synapse-ai.io',
-    passwordHash: 'CyberDef#2026',
-    photoURL: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-    teamId: 'engineering',
-    teamName: 'Engineering & Neural R&D',
-    department: 'AI Research & Platform Architecture',
-    role: 'Lead ML Infrastructure Engineer',
-    rbacRole: 'Employee',
-    organization: 'Aegis Global Enterprises',
-    phone: '+1 (555) 789-0123',
-    office: 'Building C, Floor 3, San Francisco HQ',
-    manager: 'Marcus Vance (VP Engineering)',
-    accessLevel: 'Tier 3 Restricted',
-    securityClearance: 'Level 1 General',
-    joinedDate: '2024-05-15',
-    tokenBalance: 320000,
-    status: 'ACTIVE',
-    mfaEnabled: true,
+    mfaEnabled: false,
     vaultAccess: ['engineering', 'my_team'],
     permissions: ['workspace', 'meetings', 'documents', 'neural_models'],
-    lastLogin: '2026-09-16T12:10:00Z',
+    lastLogin: '2026-10-06T14:20:00Z',
     passkeys: [],
-    activeSessions: [
-      {
-        id: 'sess-07',
-        token: 'syn-sess-emp-current',
-        ipAddress: '192.168.1.140',
-        location: 'San Francisco, CA, USA',
-        device: 'MacBook Pro 14" M3',
-        browser: 'Google Chrome 128',
-        os: 'macOS Sonoma',
-        loginTime: '2026-09-16T12:10:00Z',
-        lastActiveTime: '2026-09-16T16:00:00Z',
-        authMethod: 'PASSWORD',
-        isCurrent: true,
-      },
-    ],
+    activeSessions: [],
+  },
+  {
+    uid: 'usr-eng-004',
+    employeeId: 'EMP-ENG-004',
+    displayName: 'Bhavya Malhotra',
+    email: 'bhavya@synapse-ai.io',
+    passwordHash: 'Synapse#2026',
+    photoURL: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+    teamId: 'engineering',
+    teamName: 'Engineering & Neural R&D',
+    department: 'Engineering & AI Architecture',
+    role: 'Frontend Architect & UI Lead',
+    rbacRole: 'Employee',
+    organization: 'Aegis Global Enterprises',
+    phone: '+1 (555) 567-8901',
+    office: 'Building C, Floor 4 (UX Studio), San Francisco HQ',
+    manager: 'Charvi Sharma (Engineering Lead)',
+    accessLevel: 'Tier 3 Restricted',
+    securityClearance: 'Level 3 Financial Risk',
+    joinedDate: '2023-08-01',
+    tokenBalance: 490000,
+    status: 'ACTIVE',
+    mfaEnabled: false,
+    vaultAccess: ['engineering', 'my_team'],
+    permissions: ['workspace', 'meetings', 'documents'],
+    lastLogin: '2026-10-06T11:10:00Z',
+    passkeys: [],
+    activeSessions: [],
   },
 ];
 
@@ -451,8 +242,8 @@ export const INITIAL_SECURITY_EVENTS: SecurityEvent[] = [
   {
     id: 'sec-ev-03',
     timestamp: '2026-09-16T08:30:00Z',
-    employeeId: 'EMP-EXEC-001',
-    employeeName: 'Alex Sterling',
+    employeeId: 'EMP-ENG-001',
+    employeeName: 'Charvi Sharma',
     eventType: 'PASSKEY_REGISTERED',
     severity: 'LOW',
     description: 'Primary platform authenticator verified and hardware passkey bound to ThinkPad P1 Gen 6.',
@@ -466,8 +257,8 @@ export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
     id: 'aud-01',
     timestamp: '2026-09-16T16:50:00Z',
     eventType: 'document_access',
-    actorEmployeeId: 'EMP-EXEC-001',
-    actorName: 'Alex Sterling',
+    actorEmployeeId: 'EMP-ENG-001',
+    actorName: 'Charvi Sharma',
     actorRole: 'Administrator',
     targetResource: 'DOC-2026-MSA-01 (Enterprise Cloud Master Service Agreement)',
     action: 'Extracted SLA and liability clauses in Document Workspace',
@@ -529,30 +320,80 @@ export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
   },
 ];
 
-// LocalStorage helpers
+// LocalStorage helpers for Teams
+export function getStoredTeams(): Team[] {
+  if (typeof window === 'undefined') return TEAMS_LIST;
+  try {
+    const raw = localStorage.getItem('synapse_stored_teams_v3');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+    localStorage.setItem('synapse_stored_teams_v3', JSON.stringify(TEAMS_LIST));
+  } catch (e) {}
+  return TEAMS_LIST;
+}
+
+export function saveStoredTeams(teams: Team[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('synapse_stored_teams_v3', JSON.stringify(teams));
+  } catch (e) {}
+}
+
+export function createNewTeam(teamData: {
+  name: string;
+  code: string;
+  description: string;
+  lead?: string;
+  badgeVariant?: 'cyan' | 'rose' | 'amber' | 'purple' | 'emerald' | 'indigo';
+}): Team {
+  const teams = getStoredTeams();
+  const slug = teamData.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  const teamId = `team_${slug}_${Date.now()}`;
+
+  const newTeam: Team = {
+    id: teamId,
+    name: teamData.name.trim(),
+    code: teamData.code.trim().toUpperCase() || 'TEAM',
+    badgeVariant: teamData.badgeVariant || 'indigo',
+    description: teamData.description.trim(),
+    lead: teamData.lead || 'Charvi Sharma',
+    memberCount: 1,
+    documentCount: 0,
+    permissions: ['workspace', 'documents', 'meetings', 'fraud'],
+  };
+
+  const updatedTeams = [...teams, newTeam];
+  saveStoredTeams(updatedTeams);
+
+  addAuditLogEntry({
+    eventType: 'permission_change',
+    actorEmployeeId: 'EMP-ENG-001',
+    actorName: 'Charvi Sharma',
+    actorRole: 'Administrator',
+    targetResource: `Team ${newTeam.name} (${newTeam.code})`,
+    action: 'Provisioned new enterprise department team',
+    status: 'SUCCESS',
+    ipAddress: '192.168.1.100',
+    details: `Team Code: ${newTeam.code}, Lead: ${newTeam.lead}`,
+  });
+
+  return newTeam;
+}
+
+// LocalStorage helpers for Users
 export function getStoredUsers(): StoredUser[] {
   if (typeof window === 'undefined') return INITIAL_USERS;
   try {
-    const data = localStorage.getItem('synapse_users_db_v2');
+    const data = localStorage.getItem('synapse_users_db_v5');
     if (data) {
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((u, i) => {
-          const fallback = INITIAL_USERS[i % INITIAL_USERS.length];
-          return {
-            ...fallback,
-            ...u,
-            passkeys: u.passkeys || fallback.passkeys || [],
-            activeSessions: u.activeSessions || fallback.activeSessions || [],
-            vaultAccess: u.vaultAccess || fallback.vaultAccess || ['my_team'],
-            rbacRole: u.rbacRole || fallback.rbacRole || 'Employee',
-            securityClearance: u.securityClearance || fallback.securityClearance || 'Level 1 General',
-            accessLevel: u.accessLevel || fallback.accessLevel || 'Tier 3 Restricted',
-          };
-        });
+        return parsed;
       }
     }
-    localStorage.setItem('synapse_users_db_v2', JSON.stringify(INITIAL_USERS));
+    localStorage.setItem('synapse_users_db_v5', JSON.stringify(INITIAL_USERS));
   } catch (err) {
     console.warn('LocalStorage error reading users:', err);
   }
@@ -562,10 +403,117 @@ export function getStoredUsers(): StoredUser[] {
 export function saveStoredUsers(users: StoredUser[]): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem('synapse_users_db_v2', JSON.stringify(users));
+    localStorage.setItem('synapse_users_db_v5', JSON.stringify(users));
   } catch (err) {
     console.warn('LocalStorage error saving users:', err);
   }
+}
+
+// Biometric Enrollment & DB Storage
+export function registerFaceIdForUser(
+  email: string,
+  deviceCamera: string = 'Integrated WebCam'
+): { success: boolean; user?: StoredUser; error?: string } {
+  const users = getStoredUsers();
+  const index = users.findIndex((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+  if (index === -1) {
+    return { success: false, error: 'Employee user account not found in database.' };
+  }
+
+  const faceIdData = {
+    id: `face-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    enrolledAt: new Date().toISOString(),
+    vectorHash: `VEC-HASH-${users[index].employeeId}-${Date.now()}`,
+    descriptor: `${users[index].displayName} Retinal Mesh Vector Descriptor`,
+    deviceCamera,
+  };
+
+  users[index].faceId = faceIdData;
+  saveStoredUsers(users);
+
+  addAuditLogEntry({
+    eventType: 'passkey_registration',
+    actorEmployeeId: users[index].employeeId,
+    actorName: users[index].displayName,
+    actorRole: users[index].rbacRole,
+    targetResource: 'Biometric Face ID Vault DB',
+    action: 'Enrolled & stored facial geometry vector descriptor in DB',
+    status: 'SUCCESS',
+    ipAddress: '192.168.1.100',
+    details: `Face Vector Hash: ${faceIdData.vectorHash}`,
+  });
+
+  return { success: true, user: users[index] };
+}
+
+export function registerPasskeyForUser(
+  email: string,
+  passkey: PasskeyCredential
+): { success: boolean; user?: StoredUser; error?: string } {
+  const users = getStoredUsers();
+  const index = users.findIndex((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+  if (index === -1) {
+    return { success: false, error: 'Employee user account not found in database.' };
+  }
+
+  const existingPasskeys = users[index].passkeys || [];
+  users[index].passkeys = [...existingPasskeys, passkey];
+  saveStoredUsers(users);
+
+  addAuditLogEntry({
+    eventType: 'passkey_registration',
+    actorEmployeeId: users[index].employeeId,
+    actorName: users[index].displayName,
+    actorRole: users[index].rbacRole,
+    targetResource: 'WebAuthn Fingerprint Hardware Vault DB',
+    action: 'Registered & stored FIDO2 Fingerprint Passkey credential in DB',
+    status: 'SUCCESS',
+    ipAddress: '192.168.1.100',
+    details: `Credential ID: ${passkey.credentialId}, Device: ${passkey.name}`,
+  });
+
+  return { success: true, user: users[index] };
+}
+
+// Biometric Verification Against DB
+export function verifyFaceIdForUser(
+  email: string
+): { success: boolean; user?: StoredUser; error?: string; isEnrolled?: boolean } {
+  const users = getStoredUsers();
+  const user = users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+  if (!user) {
+    return { success: false, error: 'Employee account not found in database.' };
+  }
+
+  if (!user.faceId) {
+    return {
+      success: false,
+      isEnrolled: false,
+      error: `No Face ID signature registered in database for ${user.displayName}. Please enroll/register your face scan first.`,
+    };
+  }
+
+  return { success: true, isEnrolled: true, user };
+}
+
+export function verifyPasskeyForUser(
+  email: string
+): { success: boolean; user?: StoredUser; error?: string; isEnrolled?: boolean } {
+  const users = getStoredUsers();
+  const user = users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+  if (!user) {
+    return { success: false, error: 'Employee account not found in database.' };
+  }
+
+  if (!user.passkeys || user.passkeys.length === 0) {
+    return {
+      success: false,
+      isEnrolled: false,
+      error: `No Fingerprint Touch ID passkey registered in database for ${user.displayName}. Please register your fingerprint passkey first.`,
+    };
+  }
+
+  return { success: true, isEnrolled: true, user };
 }
 
 export function getStoredAuditLogs(): AuditLogEntry[] {

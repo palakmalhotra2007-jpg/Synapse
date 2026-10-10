@@ -278,22 +278,22 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
 
   if (isMinimized) {
     return (
-      <div className={cn('fixed bottom-4 right-4 z-40 flex items-center gap-2', className)}>
+      <div className={cn('fixed bottom-3 right-3 z-40 flex items-center gap-2', className)}>
         <button
           onClick={() => {
             if (onOpenAILLM) onOpenAILLM('chat');
           }}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-synapse-cyan/40 text-synapse-cyan shadow-lg backdrop-blur-md text-xs font-semibold hover:border-synapse-cyan transition-all"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/95 hover:bg-white border border-slate-200 text-sky-700 shadow-md backdrop-blur-md text-xs font-semibold transition-all cursor-pointer"
         >
-          <Bot className="w-4 h-4" />
+          <Bot className="w-4 h-4 text-sky-600" />
           <span>AI Assistant</span>
         </button>
         <button
           onClick={() => setIsMinimized(false)}
-          className="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-all text-xs"
+          className="p-1.5 rounded-xl bg-white/95 hover:bg-white border border-slate-200 text-slate-500 hover:text-slate-800 shadow-md backdrop-blur-md transition-all text-xs cursor-pointer"
           title="Expand Live Avatar"
         >
-          <Sparkles className="w-3.5 h-3.5" />
+          <Sparkles className="w-3.5 h-3.5 text-sky-600" />
         </button>
       </div>
     );
@@ -303,7 +303,7 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
     <div
       className={cn(
         mode === 'floating'
-          ? 'fixed bottom-1 right-3 z-50 flex flex-col items-end pointer-events-auto select-none'
+          ? 'fixed bottom-2 right-2 z-40 flex flex-col items-end pointer-events-auto select-none'
           : 'relative flex flex-col items-center select-none',
         className
       )}
@@ -312,64 +312,63 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
       <div
         onClick={handleCharacterClick}
         className={cn(
-          'mb-1 max-w-xs sm:max-w-sm rounded-2xl p-3 backdrop-blur-xl border transition-all duration-300 cursor-pointer shadow-2xl group relative z-10',
+          'mb-1 max-w-xs rounded-2xl p-2.5 backdrop-blur-md border transition-all duration-300 cursor-pointer shadow-lg group relative z-10 text-left',
           isSpeaking
-            ? 'bg-slate-900/95 border-synapse-cyan shadow-[0_0_30px_rgba(0,242,254,0.45)] ring-2 ring-synapse-cyan/60 scale-105'
+            ? 'bg-white/95 border-sky-400 shadow-sky-100 ring-2 ring-sky-400/40 text-slate-900 scale-102'
             : isHovered
-            ? 'bg-slate-900/95 border-cyan-400/80 shadow-[0_0_20px_rgba(0,242,254,0.3)] text-white'
-            : 'bg-slate-900/95 border-slate-700/80 hover:border-synapse-cyan/60 text-white'
+            ? 'bg-white/95 border-sky-300 shadow-md text-slate-900'
+            : 'bg-white/95 border-slate-200 text-slate-900 hover:border-sky-300'
         )}
       >
         {/* Bubble Tail */}
         <div
           className={cn(
-            'absolute -bottom-2 right-12 w-3.5 h-3.5 rotate-45 border-r border-b transition-colors',
+            'absolute -bottom-2 right-8 w-3 h-3 rotate-45 border-r border-b transition-colors',
             isSpeaking
-              ? 'bg-slate-900 border-synapse-cyan'
+              ? 'bg-white border-sky-400'
               : isHovered
-              ? 'bg-slate-900 border-cyan-400/80'
-              : 'bg-slate-900 border-slate-700/80'
+              ? 'bg-white border-sky-300'
+              : 'bg-white border-slate-200'
           )}
         />
 
-        <div className="flex items-start gap-2.5">
+        <div className="flex items-start gap-2">
           <div
             className={cn(
-              'w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-colors',
+              'w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-colors',
               isSpeaking
-                ? 'bg-synapse-cyan/20 border border-synapse-cyan text-synapse-cyan animate-pulse'
-                : 'bg-synapse-cyan/20 border border-synapse-cyan/40 text-synapse-cyan'
+                ? 'bg-sky-50 border border-sky-200 text-sky-600 animate-pulse'
+                : 'bg-sky-50 border border-sky-100 text-sky-600'
             )}
           >
             {isSpeaking ? (
-              <Volume2 className="w-3.5 h-3.5 animate-bounce" />
+              <Volume2 className="w-3 h-3 animate-bounce" />
             ) : (
-              <Compass className="w-3.5 h-3.5" />
+              <Compass className="w-3 h-3" />
             )}
           </div>
 
-          <div className="space-y-1 w-full">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 overflow-hidden">
-                <span className="text-[10px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-synapse-cyan to-synapse-purple uppercase tracking-wider truncate max-w-[150px]">
+          <div className="space-y-1 w-full min-w-0">
+            <div className="flex items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1 overflow-hidden">
+                <span className="text-[10px] font-extrabold text-sky-700 uppercase tracking-wider truncate max-w-[120px]">
                   {activeTitle}
                 </span>
-                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-synapse-cyan/15 text-synapse-cyan border border-synapse-cyan/30 shrink-0">
+                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-sky-50 text-sky-700 border border-sky-100 shrink-0">
                   {activeCategory}
                 </span>
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
-                {/* Manual Speak Trigger Button */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     speakVoice();
                   }}
-                  className="px-1.5 py-0.5 rounded bg-synapse-cyan/15 border border-synapse-cyan/40 text-[10px] font-bold text-synapse-cyan hover:bg-synapse-cyan/25 transition-colors flex items-center gap-0.5"
+                  className="px-1.5 py-0.5 rounded bg-sky-50 border border-sky-200 text-[9px] font-bold text-sky-700 hover:bg-sky-100 transition-colors flex items-center gap-0.5 cursor-pointer"
                   title="Speak line aloud"
                 >
-                  <Play className="w-2.5 h-2.5 fill-synapse-cyan" />
+                  <Play className="w-2 h-2 fill-sky-600 text-sky-600" />
                   <span>Speak</span>
                 </button>
 
@@ -377,19 +376,21 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     if (isSpeaking) {
-                      window.speechSynthesis.cancel();
+                      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                        window.speechSynthesis.cancel();
+                      }
                       setIsSpeaking(false);
                     } else {
                       setVoiceMuted(!voiceMuted);
                     }
                   }}
-                  className="text-slate-400 hover:text-synapse-cyan p-0.5 rounded transition-colors"
+                  className="text-slate-400 hover:text-sky-600 p-0.5 rounded transition-colors cursor-pointer"
                   title={voiceMuted ? 'Unmute' : 'Mute'}
                 >
                   {voiceMuted ? (
-                    <VolumeX className="w-3.5 h-3.5 text-rose-400" />
+                    <VolumeX className="w-3 h-3 text-rose-500" />
                   ) : (
-                    <Volume2 className="w-3.5 h-3.5 text-synapse-cyan" />
+                    <Volume2 className="w-3 h-3 text-sky-600" />
                   )}
                 </button>
 
@@ -398,7 +399,7 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
                     e.stopPropagation();
                     setIsMinimized(true);
                   }}
-                  className="text-slate-400 hover:text-white p-0.5 rounded transition-colors"
+                  className="text-slate-400 hover:text-slate-700 p-0.5 rounded transition-colors cursor-pointer font-bold text-xs"
                   title="Minimize Avatar"
                 >
                   ×
@@ -406,12 +407,12 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
               </div>
             </div>
 
-            <p className="text-xs font-semibold text-slate-100 leading-snug">
+            <p className="text-[11px] font-semibold text-slate-800 leading-snug">
               {speechText}
             </p>
 
-            <span className="text-[10px] text-synapse-cyan font-mono block pt-0.5 group-hover:underline">
-              Switch tabs to hear guide • Click to open AI LLM
+            <span className="text-[9px] text-sky-600 font-medium block group-hover:underline">
+              Click to open AI Assistant
             </span>
           </div>
         </div>
@@ -422,7 +423,7 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
         className={cn(
           'relative group cursor-pointer transition-all duration-300 flex items-end justify-center',
           mode === 'floating'
-            ? 'w-36 h-72 sm:w-44 sm:h-88'
+            ? 'w-32 h-64 sm:w-36 sm:h-72'
             : 'w-56 h-96 sm:w-64 sm:h-[450px]'
         )}
       >
@@ -436,16 +437,16 @@ export const LiveCharacter: React.FC<LiveCharacterProps> = ({
 
         {/* Equalizer speech wave frequency bar when talking */}
         {isSpeaking && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-slate-950/90 px-2.5 py-1 rounded-full border border-synapse-cyan/60 shadow-[0_0_15px_rgba(0,242,254,0.4)] backdrop-blur-md z-10 animate-in fade-in zoom-in-90 pointer-events-none">
-            <span className="w-1 h-2.5 bg-synapse-cyan rounded-full animate-pulse" />
-            <span className="w-1 h-4 bg-cyan-300 rounded-full animate-pulse delay-75" />
-            <span className="w-1 h-2.5 bg-synapse-cyan rounded-full animate-pulse delay-150" />
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-white/95 px-2 py-0.5 rounded-full border border-sky-200 shadow-md backdrop-blur-md z-10 pointer-events-none">
+            <span className="w-1 h-2 bg-sky-500 rounded-full animate-pulse" />
+            <span className="w-1 h-3 bg-sky-600 rounded-full animate-pulse delay-75" />
+            <span className="w-1 h-2 bg-sky-500 rounded-full animate-pulse delay-150" />
           </div>
         )}
 
         {/* Live Online Beacon */}
-        <div className="absolute bottom-1 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-950/90 border border-emerald-500/50 text-[9px] text-emerald-400 font-bold shadow-md z-10 pointer-events-none">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+        <div className="absolute bottom-1 right-1 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/90 border border-emerald-300 text-[8px] text-emerald-700 font-bold shadow-xs z-10 pointer-events-none">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
           <span>LIVE</span>
         </div>
       </div>

@@ -44,16 +44,68 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
   if (!isOpen || !doc) return null;
 
   const handleDownload = () => {
-    const blob = new Blob([doc.content || doc.summary || 'Document Payload'], { type: 'text/plain;charset=utf-8' });
+    if (!doc) return;
+
+    // Construct rich text content representing the complete document payload
+    const filePayload = `================================================================================
+SYNAPSE ENTERPRISE VAULT DOCUMENT
+DOCUMENT NAME: ${doc.name}
+DOCUMENT ID: ${doc.id}
+VAULT REPOSITORY: ${doc.vaultId?.toUpperCase()} VAULT
+CLASSIFICATION TIER: ${doc.classification}
+SECURITY CLEARANCE: ${doc.securityLevel}
+UPLOADED BY: ${doc.uploadedBy || 'Specialist'} (${doc.uploadedByEmployeeId || 'EMP-ENG-001'})
+DATE INGESTED: ${new Date(doc.uploadedAt).toLocaleString()}
+================================================================================
+
+--- EXECUTIVE SUMMARY ---
+${doc.summary || 'No executive summary available for this document.'}
+
+--- DOCUMENT CONTENT PAYLOAD ---
+${doc.content || 'Encrypted document content stored in vault isolation.'}
+
+--- KEY CONTRACTUAL CLAUSES (${doc.keyClauses?.length || 0}) ---
+${
+  doc.keyClauses && doc.keyClauses.length > 0
+    ? doc.keyClauses
+        .map(
+          (c, idx) =>
+            `${idx + 1}. [${c.type.toUpperCase()}] ${c.title} (${c.pageOrSection}) - Risk Level: ${c.riskLevel}\n   Snippet: "${c.snippet}"`
+        )
+        .join('\n\n')
+    : 'No key clauses indexed.'
+}
+
+================================================================================
+VERIFIED CRYPTOGRAPHIC VAULT AUDIT TRAIL & COMPLIANCE LOG
+================================================================================
+`;
+
+    // Ensure safe file extension for browser download
+    let exportFileName = doc.name;
+    if (!exportFileName.endsWith('.txt') && !exportFileName.endsWith('.md') && !exportFileName.endsWith('.csv')) {
+      exportFileName = exportFileName.replace(/\.[^/.]+$/, '') + '.txt';
+    }
+
+    const blob = new Blob([filePayload], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = doc.name;
-    a.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = exportFileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+      URL.revokeObjectURL(url);
+    }, 300);
 
     addAuditLogEntry({
       eventType: 'document_access',
-      actorEmployeeId: user?.employeeId || 'EMP-EXEC-001',
+      actorEmployeeId: user?.employeeId || 'EMP-ENG-001',
       actorName: user?.displayName || 'Specialist',
       actorRole: user?.rbacRole || 'Employee',
       targetResource: `${doc.name} (${doc.id})`,
@@ -78,20 +130,20 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/70 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
-      <div className="w-full max-w-3xl bg-slate-950 border-l border-slate-800 h-full flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/40 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
+      <div className="w-full max-w-3xl bg-white border-l border-slate-200 h-full flex flex-col shadow-2xl overflow-hidden">
         {/* Header Bar */}
-        <div className="p-5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between gap-4">
+        <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shrink-0">
+            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white truncate">{doc.name}</h3>
+                <h3 className="text-base font-bold text-slate-900 truncate">{doc.name}</h3>
                 {getClassificationBadge(doc.classification)}
               </div>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">
+              <p className="text-xs text-slate-500 font-mono mt-0.5">
                 {doc.id} • {doc.size} • {doc.vaultId?.toUpperCase() || 'GENERAL'} VAULT
               </p>
             </div>
@@ -103,7 +155,7 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
             </Button>
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -111,7 +163,7 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="px-5 border-b border-slate-800 bg-slate-900/50 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+        <div className="px-5 border-b border-slate-200 bg-white flex items-center gap-2 overflow-x-auto custom-scrollbar">
           {[
             { id: 'content', label: 'Preview Content' },
             { id: 'clauses', label: `Key Clauses (${doc.keyClauses?.length || 0})` },
@@ -125,8 +177,8 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
               onClick={() => setActiveTab(tab.id as any)}
               className={`py-3 px-3 text-xs font-bold border-b-2 whitespace-nowrap transition-all ${
                 activeTab === tab.id
-                  ? 'border-synapse-cyan text-white'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
+                  ? 'border-sky-600 text-sky-700'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
               {tab.label}
@@ -135,30 +187,30 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 p-6 overflow-y-auto custom-scrollbar space-y-6 text-left">
-          {/* Metadata Card (Always visible at top of drawer) */}
-          <div className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div className="flex-1 p-6 overflow-y-auto custom-scrollbar space-y-6 text-left bg-slate-50/50">
+          {/* Metadata Card */}
+          <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div>
-              <span className="text-slate-500 text-[10px] block">Owner / Author</span>
+              <span className="text-slate-400 text-[10px] block">Owner / Author</span>
               <button
                 onClick={() => doc.uploadedByEmployeeId && onOpenOwnerProfile?.(doc.uploadedByEmployeeId)}
-                className="font-bold text-cyan-400 hover:underline flex items-center gap-1 mt-0.5"
+                className="font-bold text-sky-600 hover:underline flex items-center gap-1 mt-0.5"
               >
                 <span>{doc.uploadedBy}</span>
               </button>
-              <span className="text-[10px] text-slate-500 font-mono">{doc.uploadedByEmployeeId}</span>
+              <span className="text-[10px] text-slate-400 font-mono">{doc.uploadedByEmployeeId}</span>
             </div>
             <div>
-              <span className="text-slate-500 text-[10px] block">Security Clearance</span>
-              <span className="font-bold text-amber-400 block mt-0.5">{doc.securityLevel}</span>
+              <span className="text-slate-400 text-[10px] block">Security Clearance</span>
+              <span className="font-bold text-amber-700 block mt-0.5">{doc.securityLevel}</span>
             </div>
             <div>
-              <span className="text-slate-500 text-[10px] block">Pages / Word Count</span>
-              <span className="font-bold text-slate-200 block mt-0.5">{doc.pageCount} pages ({doc.wordCount} words)</span>
+              <span className="text-slate-400 text-[10px] block">Pages / Word Count</span>
+              <span className="font-bold text-slate-800 block mt-0.5">{doc.pageCount} pages ({doc.wordCount} words)</span>
             </div>
             <div>
-              <span className="text-slate-500 text-[10px] block">Uploaded Date</span>
-              <span className="font-bold text-slate-200 block mt-0.5">{new Date(doc.uploadedAt).toLocaleDateString()}</span>
+              <span className="text-slate-400 text-[10px] block">Uploaded Date</span>
+              <span className="font-bold text-slate-800 block mt-0.5">{new Date(doc.uploadedAt).toLocaleDateString()}</span>
             </div>
           </div>
 
@@ -166,12 +218,12 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
           {activeTab === 'content' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Document Stream Preview
                 </span>
-                <span className="text-[10px] text-slate-500 font-mono">ENCRYPTED AT REST (AES-256)</span>
+                <span className="text-[10px] text-slate-400 font-mono">ENCRYPTED AT REST (AES-256)</span>
               </div>
-              <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono leading-relaxed text-slate-300 whitespace-pre-wrap max-h-[500px] overflow-y-auto custom-scrollbar select-text">
+              <div className="p-5 rounded-xl bg-white border border-slate-200/80 text-xs font-mono leading-relaxed text-slate-700 whitespace-pre-wrap max-h-[500px] overflow-y-auto custom-scrollbar select-text shadow-xs">
                 {doc.content || doc.summary || 'No text extracted for this document.'}
               </div>
             </div>
@@ -180,22 +232,22 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
           {/* TAB 2: Key Clauses */}
           {activeTab === 'clauses' && (
             <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                 Extracted Contractual Clauses & Liabilities ({doc.keyClauses?.length || 0}):
               </span>
               <div className="space-y-3">
                 {doc.keyClauses?.map((clause, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                  <div key={idx} className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs space-y-2">
                     <div className="flex items-center justify-between">
-                      <h5 className="text-xs font-bold text-white">{clause.title}</h5>
+                      <h5 className="text-xs font-bold text-slate-900">{clause.title}</h5>
                       <Badge variant={clause.riskLevel === 'HIGH' ? 'rose' : clause.riskLevel === 'MEDIUM' ? 'amber' : 'emerald'}>
                         {clause.riskLevel} RISK
                       </Badge>
                     </div>
-                    <p className="text-xs text-slate-300 italic bg-slate-950/60 p-3 rounded-lg border border-slate-800/80">
+                    <p className="text-xs text-slate-700 italic bg-slate-50 p-3 rounded-lg border border-slate-200/80">
                       "{clause.snippet}"
                     </p>
-                    <span className="text-[10px] text-slate-500 font-mono block">{clause.pageOrSection} • Type: {clause.type.toUpperCase()}</span>
+                    <span className="text-[10px] text-slate-400 font-mono block">{clause.pageOrSection} • Type: {clause.type.toUpperCase()}</span>
                   </div>
                 ))}
               </div>
@@ -205,16 +257,16 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
           {/* TAB 3: Summary */}
           {activeTab === 'summary' && (
             <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                 Executive Synthesis & Overview
               </span>
-              <div className="p-5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
-                <p className="text-xs text-slate-200 leading-relaxed">
+              <div className="p-5 rounded-xl bg-white border border-slate-200/80 shadow-xs space-y-3">
+                <p className="text-xs text-slate-700 leading-relaxed">
                   {doc.summary || 'No executive summary available.'}
                 </p>
-                <div className="pt-3 border-t border-slate-800 flex flex-wrap gap-1.5">
+                <div className="pt-3 border-t border-slate-100 flex flex-wrap gap-1.5">
                   {(doc.tags || []).map((t, idx) => (
-                    <span key={idx} className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px] text-cyan-400 font-mono">
+                    <span key={idx} className="px-2 py-0.5 rounded bg-sky-50 border border-sky-100 text-[10px] text-sky-700 font-mono">
                       #{t}
                     </span>
                   ))}
@@ -226,7 +278,7 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
           {/* TAB 4: Versions */}
           {activeTab === 'versions' && (
             <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                 Document Version History
               </span>
               <div className="space-y-2.5">
@@ -235,18 +287,18 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
                     version: '1.0.0',
                     updatedAt: doc.uploadedAt,
                     updatedBy: doc.uploadedBy || 'Specialist',
-                    updatedByEmployeeId: doc.uploadedByEmployeeId || 'EMP-EXEC-001',
+                    updatedByEmployeeId: doc.uploadedByEmployeeId || 'EMP-ENG-001',
                     changeNote: 'Initial verified ingestion and clause indexing.',
                     size: doc.size,
                   },
                 ]).map((v, idx) => (
-                  <div key={idx} className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs space-y-1">
+                  <div key={idx} className="p-3.5 rounded-xl bg-white border border-slate-200/80 shadow-xs text-xs space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-white font-mono">v{v.version}</span>
-                      <span className="text-[10px] text-slate-500">{new Date(v.updatedAt).toLocaleString()}</span>
+                      <span className="font-bold text-slate-900 font-mono">v{v.version}</span>
+                      <span className="text-[10px] text-slate-400">{new Date(v.updatedAt).toLocaleString()}</span>
                     </div>
-                    <p className="text-[11px] text-slate-300">{v.changeNote}</p>
-                    <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1">
+                    <p className="text-[11px] text-slate-600">{v.changeNote}</p>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
                       <span>Author: {v.updatedBy} ({v.updatedByEmployeeId})</span>
                       <span>Size: {v.size}</span>
                     </div>
@@ -259,25 +311,25 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
           {/* TAB 5: Permissions */}
           {activeTab === 'permissions' && (
             <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                 Vault Access & RBAC Permissions Matrix
               </span>
-              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3 text-xs">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                  <span className="text-slate-400">Assigned Vault:</span>
-                  <Badge variant="cyan">{doc.vaultId?.toUpperCase()} VAULT</Badge>
+              <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs space-y-3 text-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <span className="text-slate-500">Assigned Vault:</span>
+                  <Badge variant="sky">{doc.vaultId?.toUpperCase()} VAULT</Badge>
                 </div>
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                  <span className="text-slate-400">Mandatory Clearance:</span>
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <span className="text-slate-500">Mandatory Clearance:</span>
                   <Badge variant="amber">{doc.securityLevel}</Badge>
                 </div>
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                  <span className="text-slate-400">Classification Tier:</span>
-                  <span className="font-bold text-white">{doc.classification}</span>
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <span className="text-slate-500">Classification Tier:</span>
+                  <span className="font-bold text-slate-800">{doc.classification}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Audit Logging:</span>
-                  <span className="text-emerald-400 font-bold">100% Comprehensive</span>
+                  <span className="text-slate-500">Audit Logging:</span>
+                  <span className="text-emerald-600 font-bold">100% Comprehensive</span>
                 </div>
               </div>
             </div>
@@ -286,14 +338,14 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
           {/* TAB 6: Access History */}
           {activeTab === 'access_history' && (
             <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                 Audit Trail & Access History
               </span>
               <div className="space-y-2">
                 {(doc.accessHistory || [
                   {
                     id: 'acc-01',
-                    employeeId: doc.uploadedByEmployeeId || 'EMP-EXEC-001',
+                    employeeId: doc.uploadedByEmployeeId || 'EMP-ENG-001',
                     employeeName: doc.uploadedBy || 'Specialist',
                     action: 'VIEW' as const,
                     timestamp: doc.uploadedAt,
@@ -301,11 +353,11 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
                     status: 'SUCCESS' as const,
                   },
                 ]).map((acc) => (
-                  <div key={acc.id} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs flex items-center justify-between">
+                  <div key={acc.id} className="p-3 rounded-xl bg-white border border-slate-200/80 shadow-xs text-xs flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-white">{acc.employeeName}</span>
-                        <span className="text-[10px] text-cyan-400 font-mono">{acc.employeeId}</span>
+                        <span className="font-bold text-slate-800">{acc.employeeName}</span>
+                        <span className="text-[10px] text-sky-600 font-mono">{acc.employeeId}</span>
                       </div>
                       <p className="text-[10px] text-slate-400 mt-0.5">
                         Action: {acc.action} • IP: {acc.ipAddress}
@@ -313,7 +365,7 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
                     </div>
                     <div className="text-right">
                       <Badge variant="emerald" size="sm">SUCCESS</Badge>
-                      <span className="text-[9px] text-slate-500 block mt-1">{new Date(acc.timestamp).toLocaleTimeString()}</span>
+                      <span className="text-[9px] text-slate-400 block mt-1">{new Date(acc.timestamp).toLocaleTimeString()}</span>
                     </div>
                   </div>
                 ))}

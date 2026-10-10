@@ -41,6 +41,7 @@ import { DocumentUploadModal } from '@/components/documents/DocumentUploadModal'
 import { ImageVisionModal } from '@/components/vision/ImageVisionModal';
 import { TEAMS_LIST } from '@/lib/auth/usersDb';
 import { TeamId } from '@/types/dashboard';
+import { generateChatHistoryReport } from '@/lib/utils/pdfGenerator';
 
 
 const models: AIModelSpec[] = [
@@ -328,22 +329,17 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
   };
 
   const exportChatHistory = () => {
-    const chatText = messages
-      .map((m) => `[${m.timestamp}] ${m.role.toUpperCase()} (${m.modelUsed || 'user'}):\n${m.content}\n`)
-      .join('\n---\n\n');
-
-    const blob = new Blob([chatText], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Synapse_Chat_Export_${Date.now()}.md`;
-    a.click();
+    const activeSessionObj = sessions.find((s) => s.id === activeSessionId);
+    generateChatHistoryReport({
+      sessionTitle: activeSessionObj?.title || 'AI Workspace Chat',
+      messages,
+    });
   };
 
   return (
-    <div className="h-[calc(100vh-5rem)] flex overflow-hidden">
+    <div className="h-[calc(100vh-5rem)] flex overflow-hidden bg-slate-50">
       {/* Left Chat Threads Sidebar */}
-      <div className="w-64 border-r border-slate-800/80 bg-slate-950/80 p-4 hidden lg:flex flex-col space-y-4 shrink-0">
+      <div className="w-64 border-r border-slate-200/80 bg-white p-4 hidden lg:flex flex-col space-y-4 shrink-0 shadow-xs">
         <Button
           onClick={handleCreateNewThread}
           variant="primary"
@@ -355,7 +351,7 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
         </Button>
 
         <div className="flex-1 space-y-1.5 overflow-y-auto custom-scrollbar">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 block mb-2">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 block mb-2">
             Recent Threads ({sessions.length}):
           </span>
           {sessions.map((sess) => {
@@ -366,17 +362,17 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
                 onClick={() => setActiveSessionId(sess.id)}
                 className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${
                   isActive
-                    ? 'bg-gradient-to-r from-synapse-cyan/15 to-synapse-purple/10 border-synapse-cyan/40 text-white font-medium shadow-sm'
-                    : 'bg-slate-900/40 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/80'
+                    ? 'bg-sky-50 border-sky-200 text-sky-900 font-bold shadow-xs'
+                    : 'bg-slate-50/60 border-slate-200/60 text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <MessageSquare className="w-3.5 h-3.5 text-synapse-cyan shrink-0" />
+                  <MessageSquare className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                   <span className="text-xs truncate">{sess.title}</span>
                 </div>
                 <button
                   onClick={(e) => handleDeleteThread(sess.id, e)}
-                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 rounded transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 rounded transition-opacity"
                   title="Delete thread"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -387,18 +383,18 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
         </div>
 
         {/* Model Spec Card */}
-        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 text-xs">
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-slate-400">Active Model:</span>
-            <span className="font-bold text-synapse-cyan">{selectedModelSpec.name}</span>
+            <span className="text-slate-500 font-medium">Active Model:</span>
+            <span className="font-bold text-sky-700">{selectedModelSpec.name}</span>
           </div>
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Context Window:</span>
-            <span className="font-mono text-slate-300 font-bold">{selectedModelSpec.contextWindow}</span>
+            <span className="text-slate-500 font-medium">Context Window:</span>
+            <span className="font-mono text-slate-900 font-bold">{selectedModelSpec.contextWindow}</span>
           </div>
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-slate-400">Available Tokens:</span>
-            <span className="font-mono text-amber-400 font-bold">
+            <span className="text-slate-500 font-medium">Available Tokens:</span>
+            <span className="font-mono text-amber-600 font-bold">
               {user?.tokenBalance ? (user.tokenBalance / 1000).toFixed(0) + 'k' : '850k'}
             </span>
           </div>
@@ -406,17 +402,17 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
       </div>
 
       {/* Center Main Chat Panel */}
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-950/40">
+      <div className="flex-1 flex flex-col min-w-0 bg-slate-50/60">
         {/* Top Control Bar */}
-        <div className="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 select-none shrink-0">
+        <div className="border-b border-slate-200/80 bg-white/90 backdrop-blur px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 select-none shrink-0 shadow-xs">
           {/* Model Selector Dropdown & Quick Actions */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-slate-400 hidden sm:inline font-medium">Engine:</span>
+            <span className="text-xs text-slate-500 hidden sm:inline font-medium">Engine:</span>
             <div className="relative">
               <select
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value as AIModelId)}
-                className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white font-semibold focus:outline-none focus:border-synapse-cyan/50 cursor-pointer"
+                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-sky-500 cursor-pointer shadow-xs"
               >
                 {models.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -427,39 +423,39 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
             </div>
 
             {/* Quick Vision Feature Action Badges */}
-            <div className="flex items-center gap-1.5 pl-2 border-l border-slate-800">
+            <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
               <button
                 onClick={() => openVisionModalWithMode('image_search')}
-                className="px-2.5 py-1 rounded-lg bg-cyan-950/60 border border-synapse-cyan/40 hover:border-synapse-cyan text-[11px] font-semibold text-synapse-cyan flex items-center gap-1.5 transition-all shadow-[0_0_10px_rgba(0,242,254,0.15)]"
+                className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-[11px] font-bold text-sky-700 flex items-center gap-1.5 transition-all shadow-xs"
                 title="Upload machine / board image to extract visible components"
               >
-                <Camera className="w-3.5 h-3.5" />
+                <Camera className="w-3.5 h-3.5 text-sky-600" />
                 <span className="hidden md:inline">Image Search</span>
               </button>
 
               <button
                 onClick={() => openVisionModalWithMode('chart_understanding')}
-                className="px-2.5 py-1 rounded-lg bg-purple-950/60 border border-purple-500/40 hover:border-purple-400 text-[11px] font-semibold text-purple-300 flex items-center gap-1.5 transition-all shadow-[0_0_10px_rgba(168,85,247,0.15)]"
+                className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[11px] font-bold text-purple-700 flex items-center gap-1.5 transition-all shadow-xs"
                 title="Upload bar graphs, pie charts, and dashboards to calculate trends"
               >
-                <BarChart3 className="w-3.5 h-3.5 text-purple-400" />
+                <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
                 <span className="hidden md:inline">Chart AI</span>
               </button>
 
               <button
                 onClick={() => openVisionModalWithMode('duplicate_detection')}
-                className="px-2.5 py-1 rounded-lg bg-rose-950/60 border border-rose-500/40 hover:border-rose-400 text-[11px] font-semibold text-rose-300 flex items-center gap-1.5 transition-all shadow-[0_0_10px_rgba(244,63,94,0.15)]"
+                className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-[11px] font-bold text-rose-700 flex items-center gap-1.5 transition-all shadow-xs"
                 title="Check perceptual image hash and vault duplicates"
               >
-                <ImageIcon className="w-3.5 h-3.5 text-rose-400" />
+                <ImageIcon className="w-3.5 h-3.5 text-rose-600" />
                 <span className="hidden md:inline">Duplicate Scan</span>
               </button>
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-synapse-cyan/10 border border-synapse-cyan/30 text-[11px] font-semibold text-synapse-cyan">
-              <Sparkles className="w-3 h-3 text-synapse-cyan animate-pulse" />
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-[11px] font-bold text-sky-700">
+              <Sparkles className="w-3 h-3 text-sky-600 animate-pulse" />
               <span>Universal RAG Brain ({allDocs.length} Docs Indexed)</span>
             </div>
             <Button
@@ -494,8 +490,8 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
                 className={`flex gap-3 sm:gap-4 ${isAi ? 'justify-start' : 'justify-end'}`}
               >
                 {isAi && (
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-synapse-cyan to-synapse-purple p-0.5 shadow-[0_0_12px_rgba(0,242,254,0.3)] shrink-0 mt-0.5">
-                    <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-synapse-cyan">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 p-0.5 shadow-xs shrink-0 mt-0.5">
+                    <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center text-sky-600 border border-sky-100">
                       <Bot className="w-5 h-5" />
                     </div>
                   </div>
@@ -504,17 +500,21 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
                 <div
                   className={`max-w-3xl rounded-2xl p-4 sm:p-5 text-sm leading-relaxed space-y-3 relative group ${
                     isAi
-                      ? 'glass-panel border-slate-800 text-slate-100 rounded-tl-none bg-slate-900/90 shadow-lg'
-                      : 'bg-gradient-to-r from-purple-600/30 to-synapse-cyan/20 border border-purple-500/30 text-white rounded-tr-none'
+                      ? 'bg-white border border-slate-200/90 text-slate-800 rounded-tl-none shadow-xs'
+                      : 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white rounded-tr-none shadow-xs font-medium'
                   }`}
                 >
                   {/* Attached docs tag in user query */}
                   {msg.attachments && msg.attachments.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pb-2 border-b border-white/10">
+                    <div className="flex flex-wrap gap-1.5 pb-2 border-b border-white/20">
                       {msg.attachments.map((att, i) => (
                         <span
                           key={i}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-950/60 text-[10px] text-synapse-cyan border border-synapse-cyan/30"
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border ${
+                            isAi
+                              ? 'bg-sky-50 text-sky-700 border-sky-200'
+                              : 'bg-white/20 text-white border-white/30'
+                          }`}
                         >
                           <FileText className="w-3 h-3" />
                           <span>{att.name}</span>
@@ -527,35 +527,35 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
 
                   {/* RAG Citations Accordion */}
                   {msg.ragCitations && msg.ragCitations.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-2">
-                      <span className="text-[11px] font-bold text-synapse-cyan flex items-center gap-1.5 uppercase tracking-wider">
-                        <Sparkles className="w-3.5 h-3.5 text-synapse-cyan animate-pulse" />
+                    <div className="mt-3 pt-3 border-t border-slate-200/80 space-y-2">
+                      <span className="text-[11px] font-bold text-sky-700 flex items-center gap-1.5 uppercase tracking-wider">
+                        <Sparkles className="w-3.5 h-3.5 text-sky-600 animate-pulse" />
                         <span>Grounded Knowledge Base Citations ({msg.ragCitations.length} sources):</span>
                       </span>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {msg.ragCitations.map((cit, idx) => (
                           <div
                             key={idx}
-                            className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800/80 text-xs text-slate-300 space-y-1.5 hover:border-synapse-cyan/40 transition-colors"
+                            className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 space-y-1.5 hover:border-sky-300 transition-colors shadow-xs"
                           >
-                            <div className="flex items-center justify-between text-[10px] text-slate-400">
-                              <span className="font-bold text-white flex items-center gap-1 truncate max-w-[170px]" title={cit.documentTitle}>
-                                <FileText className="w-3 h-3 text-synapse-cyan shrink-0" />
+                            <div className="flex items-center justify-between text-[10px] text-slate-500">
+                              <span className="font-bold text-slate-900 flex items-center gap-1 truncate max-w-[170px]" title={cit.documentTitle}>
+                                <FileText className="w-3 h-3 text-sky-600 shrink-0" />
                                 <span className="truncate">{cit.documentTitle}</span>
                               </span>
-                              <span className="text-emerald-400 font-mono font-bold shrink-0 ml-1">
+                              <span className="text-emerald-600 font-mono font-bold shrink-0 ml-1">
                                 {(cit.relevanceScore * 100).toFixed(0)}% match
                               </span>
                             </div>
                             {cit.uploadedBy && (
-                              <div className="flex items-center gap-1.5 text-[9px] text-slate-400">
-                                <span>Uploaded by: <strong className="text-slate-300">{cit.uploadedBy}</strong></span>
+                              <div className="flex items-center gap-1.5 text-[9px] text-slate-500">
+                                <span>Uploaded by: <strong className="text-slate-700">{cit.uploadedBy}</strong></span>
                                 {cit.teamName && (
-                                  <span className="text-purple-400 font-mono">({cit.teamName.split(' ')[0]})</span>
+                                  <span className="text-purple-600 font-mono">({cit.teamName.split(' ')[0]})</span>
                                 )}
                               </div>
                             )}
-                            <p className="text-[11px] italic text-slate-300 line-clamp-2 bg-slate-900/60 p-1.5 rounded-lg border border-slate-800/60">
+                            <p className="text-[11px] italic text-slate-600 line-clamp-2 bg-white p-2 rounded-lg border border-slate-200/80">
                               "{cit.snippet}"
                             </p>
                           </div>
@@ -565,16 +565,18 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
                   )}
 
                   {/* Copy Action & Timestamp */}
-                  <div className="flex items-center justify-between pt-1 text-[10px] text-slate-500">
+                  <div className={`flex items-center justify-between pt-1 text-[10px] ${isAi ? 'text-slate-400' : 'text-sky-100'}`}>
                     <span>{msg.timestamp}</span>
                     <button
                       onClick={() => copyToClipboard(msg.content, msg.id)}
-                      className="opacity-0 group-hover:opacity-100 flex items-center gap-1 hover:text-synapse-cyan transition-all"
+                      className={`opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all ${
+                        isAi ? 'hover:text-sky-600 text-slate-400' : 'hover:text-white text-sky-100'
+                      }`}
                     >
                       {copiedId === msg.id ? (
                         <>
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                          <span className="text-emerald-400">Copied</span>
+                          <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                          <span className="text-emerald-500 font-bold">Copied</span>
                         </>
                       ) : (
                         <>
@@ -587,7 +589,7 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
                 </div>
 
                 {!isAi && (
-                  <div className="w-9 h-9 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0 mt-0.5">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 shrink-0 mt-0.5 shadow-xs">
                     <User className="w-4 h-4" />
                   </div>
                 )}
@@ -597,11 +599,11 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
 
           {isGenerating && (
             <div className="flex gap-4 justify-start animate-in fade-in">
-              <div className="w-9 h-9 rounded-xl bg-synapse-cyan/10 border border-synapse-cyan/30 flex items-center justify-center text-synapse-cyan">
+              <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 shadow-xs">
                 <Bot className="w-5 h-5 animate-pulse" />
               </div>
-              <div className="p-4 rounded-2xl glass-panel border-slate-800 text-xs text-slate-400 flex items-center gap-2">
-                <div className="w-3 h-3 border-2 border-synapse-cyan border-t-transparent rounded-full animate-spin" />
+              <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs text-slate-600 flex items-center gap-2 shadow-xs">
+                <div className="w-3 h-3 border-2 border-sky-600 border-t-transparent rounded-full animate-spin" />
                 <span>Synapse is synthesizing response & reasoning over RAG context...</span>
               </div>
             </div>
@@ -611,24 +613,24 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
         </div>
 
         {/* Bottom Input Box */}
-        <div className="p-4 sm:p-5 border-t border-slate-800/80 bg-slate-950/80 backdrop-blur">
+        <div className="p-4 sm:p-5 border-t border-slate-200/80 bg-white/90 backdrop-blur">
           {/* Attached Document Chips */}
           {attachedDocs.length > 0 && (
             <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1 custom-scrollbar">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0">
                 Context RAG Docs:
               </span>
               {attachedDocs.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs text-slate-300 shrink-0"
+                  className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs text-slate-700 shrink-0 shadow-xs"
                 >
-                  <FileText className="w-3.5 h-3.5 text-synapse-cyan" />
-                  <span className="truncate max-w-[150px]">{doc.name}</span>
-                  <span className="text-[9px] text-purple-400 font-mono">({doc.teamName?.split(' ')[0] || 'Team'})</span>
+                  <FileText className="w-3.5 h-3.5 text-sky-600" />
+                  <span className="truncate max-w-[150px] font-medium">{doc.name}</span>
+                  <span className="text-[9px] text-purple-600 font-mono">({doc.teamName?.split(' ')[0] || 'Team'})</span>
                   <button
                     onClick={() => setAttachedDocs(attachedDocs.filter((d) => d.id !== doc.id))}
-                    className="text-slate-500 hover:text-rose-400"
+                    className="text-slate-400 hover:text-rose-600 font-bold"
                   >
                     ×
                   </button>
@@ -648,7 +650,7 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
             <div className="absolute left-2.5 flex items-center gap-1">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-slate-400 hover:text-synapse-cyan rounded-xl hover:bg-slate-800 transition-colors"
+                className="p-2 text-slate-400 hover:text-sky-600 rounded-xl hover:bg-slate-100 transition-colors"
                 title="Attach Document / Dataset for RAG"
               >
                 <Paperclip className="w-4 h-4" />
@@ -656,7 +658,7 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
 
               <button
                 onClick={() => openVisionModalWithMode('image_search')}
-                className="p-2 text-slate-400 hover:text-synapse-cyan rounded-xl hover:bg-slate-800 transition-colors"
+                className="p-2 text-slate-400 hover:text-sky-600 rounded-xl hover:bg-slate-100 transition-colors"
                 title="Upload Image for Deep Learning Vision Analysis (Machines, Charts, Duplicate Scan)"
               >
                 <Camera className="w-4 h-4" />
@@ -674,13 +676,13 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
                 }
               }}
               placeholder="Ask anything (e.g. 'explain circuit board', 'what is in this chart', 'write code', or say 'hi')..."
-              className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl pl-20 pr-14 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50 focus:ring-1 focus:ring-synapse-cyan/30 resize-none custom-scrollbar"
+              className="w-full bg-white border border-slate-200 rounded-2xl pl-20 pr-14 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 shadow-xs resize-none custom-scrollbar"
             />
 
             <button
               onClick={handleSendMessage}
               disabled={!inputPrompt.trim() || isGenerating}
-              className="absolute right-3 p-2 bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 font-bold rounded-xl hover:shadow-[0_0_15px_rgba(0,242,254,0.4)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="absolute right-3 p-2 bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-bold rounded-xl hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -689,11 +691,11 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
       </div>
 
       {/* Right Sidebar: System Prompts & RAG Library */}
-      <div className="w-80 border-l border-slate-800/80 bg-slate-950/80 p-5 hidden xl:flex flex-col space-y-6 overflow-y-auto custom-scrollbar shrink-0">
+      <div className="w-80 border-l border-slate-200/80 bg-white p-5 hidden xl:flex flex-col space-y-6 overflow-y-auto custom-scrollbar shrink-0 shadow-xs">
         {/* Preset Prompts */}
         <div className="space-y-3">
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-synapse-cyan" />
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-sky-600" />
             <span>Prompt Presets</span>
           </h4>
           <div className="space-y-2">
@@ -701,27 +703,27 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
               <div
                 key={p.id}
                 onClick={() => setInputPrompt(p.prompt)}
-                className="p-3 rounded-xl glass-panel hover:border-synapse-cyan/40 cursor-pointer transition-all border border-slate-800/80 group"
+                className="p-3 rounded-xl bg-slate-50 hover:bg-white hover:border-sky-300 border border-slate-200/80 cursor-pointer transition-all group shadow-xs"
               >
-                <h5 className="text-xs font-bold text-slate-200 group-hover:text-synapse-cyan transition-colors">
+                <h5 className="text-xs font-bold text-slate-800 group-hover:text-sky-700 transition-colors">
                   {p.title}
                 </h5>
-                <p className="text-[11px] text-slate-400 mt-1">{p.description}</p>
+                <p className="text-[11px] text-slate-500 mt-1">{p.description}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Knowledge Base RAG Library Scoped by Team */}
-        <div className="space-y-3 pt-4 border-t border-slate-800">
+        <div className="space-y-3 pt-4 border-t border-slate-200">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-purple-400" />
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-purple-600" />
               <span>Team RAG Vaults</span>
             </h4>
             <button
               onClick={() => setIsUploadModalOpen(true)}
-              className="text-[10px] text-synapse-cyan hover:underline font-bold flex items-center gap-1"
+              className="text-[10px] text-sky-700 hover:underline font-bold flex items-center gap-1"
             >
               <Plus className="w-3 h-3" />
               <span>Upload</span>
@@ -732,7 +734,7 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
           <select
             value={kbTeamFilter}
             onChange={(e) => setKbTeamFilter(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none focus:border-synapse-cyan/50"
+            className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-800 font-medium focus:outline-none focus:border-sky-500 shadow-xs"
           >
             <option value="all">All Vault Documents</option>
             <option value="my_team">My Team ({user?.teamName?.split(' ')[0] || 'My Team'})</option>
@@ -752,19 +754,19 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
                     setAttachedDocs([...attachedDocs, doc]);
                   }
                 }}
-                className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-purple-500/40 cursor-pointer transition-all flex items-center justify-between group"
+                className="p-3 rounded-xl bg-slate-50 hover:bg-white hover:border-purple-300 border border-slate-200/80 cursor-pointer transition-all flex items-center justify-between group shadow-xs"
               >
                 <div className="min-w-0 flex-1">
-                  <h5 className="text-xs font-semibold text-slate-200 truncate group-hover:text-synapse-cyan">
+                  <h5 className="text-xs font-semibold text-slate-800 truncate group-hover:text-sky-700">
                     {doc.name}
                   </h5>
                   <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
                     <span>{doc.size}</span>
                     <span>•</span>
-                    <span className="text-purple-400 truncate">{doc.teamName?.split(' ')[0]}</span>
+                    <span className="text-purple-600 font-medium truncate">{doc.teamName?.split(' ')[0]}</span>
                   </div>
                 </div>
-                <Plus className="w-4 h-4 text-slate-400 group-hover:text-synapse-cyan shrink-0 ml-2" />
+                <Plus className="w-4 h-4 text-slate-400 group-hover:text-sky-600 shrink-0 ml-2" />
               </div>
             ))}
           </div>

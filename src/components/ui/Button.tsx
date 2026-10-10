@@ -25,16 +25,16 @@ export const Button: React.FC<ButtonProps> = ({
     <button
       disabled={disabled || isLoading}
       className={cn(
-        'inline-flex items-center justify-center font-medium transition-all duration-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-synapse-cyan/50 disabled:opacity-50 disabled:cursor-not-allowed select-none',
+        'inline-flex items-center justify-center font-medium transition-all duration-150 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/30 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer',
         size === 'sm' && 'px-3 py-1.5 text-xs gap-1.5',
-        size === 'md' && 'px-4 py-2.5 text-sm gap-2',
-        size === 'lg' && 'px-6 py-3 text-base gap-2.5',
-        variant === 'primary' && 'bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 font-semibold hover:shadow-[0_0_20px_rgba(0,242,254,0.4)] hover:brightness-110 active:scale-95',
-        variant === 'glow' && 'bg-synapse-cyan/10 border border-synapse-cyan/40 text-synapse-cyan hover:bg-synapse-cyan/20 hover:shadow-[0_0_15px_rgba(0,242,254,0.3)]',
-        variant === 'secondary' && 'bg-slate-800/80 border border-slate-700 text-slate-200 hover:bg-slate-700/80 hover:text-white',
-        variant === 'outline' && 'bg-transparent border border-slate-700 text-slate-300 hover:border-slate-500 hover:bg-slate-800/50 hover:text-white',
-        variant === 'ghost' && 'bg-transparent text-slate-300 hover:bg-slate-800/50 hover:text-white',
-        variant === 'danger' && 'bg-rose-500/20 border border-rose-500/40 text-rose-400 hover:bg-rose-500/30',
+        size === 'md' && 'px-4 py-2 text-sm gap-2',
+        size === 'lg' && 'px-6 py-2.5 text-base gap-2.5',
+        variant === 'primary' && 'bg-gradient-to-r from-sky-500 to-blue-600 text-white font-semibold shadow-sm hover:from-sky-600 hover:to-blue-700 active:scale-[0.98]',
+        variant === 'glow' && 'bg-sky-50 border border-sky-200 text-sky-700 font-semibold hover:bg-sky-100',
+        variant === 'secondary' && 'bg-slate-100 border border-slate-200 text-slate-700 font-medium hover:bg-slate-200/80',
+        variant === 'outline' && 'bg-white border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 hover:border-slate-300 shadow-xs',
+        variant === 'ghost' && 'bg-transparent text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900',
+        variant === 'danger' && 'bg-rose-50 border border-rose-200 text-rose-700 font-semibold hover:bg-rose-100',
         className
       )}
       {...props}

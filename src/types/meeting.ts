@@ -52,6 +52,8 @@ export interface MinutesOfMeeting {
   organizer?: string;
   organizerEmployeeId?: string;
   location?: string;
+  sourceUrl?: string;
+  youtubeVideoId?: string;
   attendees: string[]; // Names or formatted string list
   participants?: MeetingParticipant[]; // Structured participants with designations
   agendaTopics: {
@@ -79,8 +81,11 @@ export interface MeetingSession {
   organizer: string;
   organizerEmployeeId: string;
   status: 'COMPLETED' | 'SCHEDULED' | 'IN_PROGRESS';
-  mediaType: 'audio' | 'video' | 'transcript_text';
+  mediaType: 'audio' | 'video' | 'transcript_text' | 'youtube_link' | 'web_link';
   audioUrl?: string;
+  sourceUrl?: string;
+  thumbnailUrl?: string;
+  youtubeVideoId?: string;
   participants: MeetingParticipant[];
   agenda: string[];
   utterances: TranscriptUtterance[];

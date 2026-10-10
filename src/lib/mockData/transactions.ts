@@ -1,9 +1,10 @@
 import { TransactionRecord, FraudAnalysisSummary, RiskSeverity } from '@/types/fraud';
+import { getRelativeTimestamp } from '@/lib/utils';
 
 export const sampleTransactions: TransactionRecord[] = [
   {
     id: 'TXN-902148',
-    timestamp: '2026-08-30T10:42:15Z',
+    timestamp: getRelativeTimestamp(0, -2),
     accountSender: 'ACC-881940 (Global Capital Corp)',
     senderName: 'Global Capital Corp',
     accountRecipient: 'ACC-110294 (Apex Offshore Holdings)',
@@ -35,7 +36,7 @@ export const sampleTransactions: TransactionRecord[] = [
       'Amount exceeds 90-day baseline transfer limit by 420%',
     ],
     status: 'FLAGGED',
-    assignedInvestigator: 'Elena Rostova (EMP-SEC-002)',
+    assignedInvestigator: 'Tanisha Gupta (EMP-ENG-002)',
     anomalyFactors: {
       velocityFactor: 8.4,
       amountAnomaly: 4.2,
@@ -54,8 +55,8 @@ export const sampleTransactions: TransactionRecord[] = [
     investigationNotes: [
       {
         id: 'inv-note-01',
-        authorEmployeeId: 'EMP-SEC-002',
-        authorName: 'Elena Rostova',
+        authorEmployeeId: 'EMP-ENG-002',
+        authorName: 'Tanisha Gupta',
         timestamp: '2026-08-30T11:00:00Z',
         note: 'Requested beneficial ownership documentation and freeze request submitted to intermediary clearing bank.',
         actionTaken: 'FLAGGED & ESCALATED',
@@ -93,7 +94,7 @@ export const sampleTransactions: TransactionRecord[] = [
       'Mismatched IBAN routing clearing house code',
     ],
     status: 'UNDER_INVESTIGATION',
-    assignedInvestigator: 'Elena Rostova (EMP-SEC-002)',
+    assignedInvestigator: 'Tanisha Gupta (EMP-ENG-002)',
     anomalyFactors: {
       velocityFactor: 4.1,
       amountAnomaly: 2.5,
@@ -190,7 +191,7 @@ export const sampleTransactions: TransactionRecord[] = [
       'Amount close to single-signoff approval threshold ($250,000)',
     ],
     status: 'REVIEWED',
-    assignedInvestigator: 'Elena Rostova (EMP-SEC-002)',
+    assignedInvestigator: 'Tanisha Gupta (EMP-ENG-002)',
     anomalyFactors: {
       velocityFactor: 2.2,
       amountAnomaly: 1.8,
@@ -209,8 +210,8 @@ export const sampleTransactions: TransactionRecord[] = [
     investigationNotes: [
       {
         id: 'inv-note-03',
-        authorEmployeeId: 'EMP-SEC-002',
-        authorName: 'Elena Rostova',
+        authorEmployeeId: 'EMP-ENG-002',
+        authorName: 'Tanisha Gupta',
         timestamp: '2026-08-30T08:00:00Z',
         note: 'Verified against signed contract. Approved by CFO.',
         actionTaken: 'REVIEWED & CLEARED',
@@ -248,7 +249,7 @@ export const sampleTransactions: TransactionRecord[] = [
       'Unknown Linux automated daemon fingerprint',
     ],
     status: 'BLOCKED',
-    assignedInvestigator: 'Elena Rostova (EMP-SEC-002)',
+    assignedInvestigator: 'Tanisha Gupta (EMP-ENG-002)',
     anomalyFactors: {
       velocityFactor: 9.1,
       amountAnomaly: 5.0,
@@ -267,8 +268,8 @@ export const sampleTransactions: TransactionRecord[] = [
     investigationNotes: [
       {
         id: 'inv-note-04',
-        authorEmployeeId: 'EMP-SEC-002',
-        authorName: 'Elena Rostova',
+        authorEmployeeId: 'EMP-ENG-002',
+        authorName: 'Tanisha Gupta',
         timestamp: '2026-08-30T06:25:00Z',
         note: 'Automated circuit breaker triggered. Account quarantined and wire cancelled.',
         actionTaken: 'BLOCKED BY SOC',

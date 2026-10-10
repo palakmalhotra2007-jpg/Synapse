@@ -2,29 +2,29 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: 'cyan' | 'purple' | 'rose' | 'amber' | 'emerald' | 'slate';
+  variant?: 'sky' | 'cyan' | 'purple' | 'indigo' | 'rose' | 'amber' | 'emerald' | 'slate';
   size?: 'sm' | 'md';
 }
 
 export const Badge: React.FC<BadgeProps> = ({
   children,
   className,
-  variant = 'cyan',
+  variant = 'sky',
   size = 'md',
   ...props
 }) => {
   return (
     <span
       className={cn(
-        'inline-flex items-center font-medium rounded-full border transition-colors select-none',
+        'inline-flex items-center font-semibold rounded-full border transition-colors select-none',
         size === 'sm' && 'px-2 py-0.5 text-[10px]',
         size === 'md' && 'px-2.5 py-1 text-xs',
-        variant === 'cyan' && 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400',
-        variant === 'purple' && 'bg-purple-500/10 border-purple-500/30 text-purple-400',
-        variant === 'rose' && 'bg-rose-500/10 border-rose-500/30 text-rose-400',
-        variant === 'amber' && 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-        variant === 'emerald' && 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-        variant === 'slate' && 'bg-slate-800/80 border-slate-700 text-slate-300',
+        (variant === 'sky' || variant === 'cyan') && 'bg-sky-50 text-sky-700 border-sky-200',
+        (variant === 'indigo' || variant === 'purple') && 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        variant === 'rose' && 'bg-rose-50 text-rose-700 border-rose-200',
+        variant === 'amber' && 'bg-amber-50 text-amber-700 border-amber-200',
+        variant === 'emerald' && 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        variant === 'slate' && 'bg-slate-100 text-slate-700 border-slate-200',
         className
       )}
       {...props}

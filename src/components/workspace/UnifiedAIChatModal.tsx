@@ -84,7 +84,7 @@ export const UnifiedAIChatModal: React.FC<UnifiedAIChatModalProps> = ({
   onClose,
   initialMode = 'chat',
 }) => {
-  const { user } = useAuth();
+  const { user, executionMode, setExecutionMode } = useAuth();
   const [activeTab, setActiveTab] = useState<'chat' | 'vision'>(
     initialMode === 'chat' ? 'chat' : 'vision'
   );
@@ -168,7 +168,8 @@ How can I help you today?`,
         userPromptText,
         selectedModel,
         messages,
-        attachedDocs
+        attachedDocs,
+        executionMode
       );
 
       const aiMsg: ChatMessage = {
@@ -247,16 +248,16 @@ How can I help you today?`,
       title="Synapse AI Assistant & Multi-Modal Intelligence"
       maxWidth="5xl"
     >
-      <div className="space-y-4 text-xs text-slate-300">
+      <div className="space-y-4 text-xs text-slate-800">
         {/* Navigation Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveTab('chat')}
-              className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-2 ${
+              className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'chat'
-                  ? 'bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 shadow-md'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                  ? 'bg-sky-500 text-white shadow-xs border border-sky-600'
+                  : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-sky-50 hover:text-sky-700'
               }`}
             >
               <MessageSquare className="w-4 h-4" />
@@ -265,10 +266,10 @@ How can I help you today?`,
 
             <button
               onClick={() => setActiveTab('vision')}
-              className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-2 ${
+              className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'vision'
-                  ? 'bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 shadow-md'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                  ? 'bg-sky-500 text-white shadow-xs border border-sky-600'
+                  : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-sky-50 hover:text-sky-700'
               }`}
             >
               <Camera className="w-4 h-4" />
@@ -276,8 +277,7 @@ How can I help you today?`,
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-slate-400">Indexed Vault Documents:</span>
+          <div className="flex flex-wrap items-center gap-2.5">
             <Badge variant="cyan" size="sm">
               {allDocs.length} Docs Available
             </Badge>
@@ -288,7 +288,7 @@ How can I help you today?`,
         {activeTab === 'chat' && (
           <div className="space-y-4">
             {/* Conversation Messages Container */}
-            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 min-h-[340px] max-h-[420px] overflow-y-auto space-y-4 custom-scrollbar">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 min-h-[340px] max-h-[420px] overflow-y-auto space-y-4 custom-scrollbar">
               {messages.map((msg) => {
                 const isAi = msg.role === 'assistant';
                 return (
@@ -297,24 +297,28 @@ How can I help you today?`,
                     className={`flex gap-3 ${isAi ? 'justify-start' : 'justify-end'}`}
                   >
                     {isAi && (
-                      <div className="w-8 h-8 rounded-xl bg-synapse-cyan/10 border border-synapse-cyan/30 flex items-center justify-center text-synapse-cyan shrink-0 mt-0.5">
+                      <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 shrink-0 mt-0.5 shadow-2xs">
                         <Bot className="w-4 h-4" />
                       </div>
                     )}
 
                     <div
-                      className={`max-w-2xl rounded-2xl p-4 text-xs leading-relaxed space-y-2.5 relative group ${
+                      className={`max-w-2xl rounded-2xl p-4 text-xs leading-relaxed space-y-2.5 relative group shadow-2xs ${
                         isAi
-                          ? 'glass-panel border-slate-800 text-slate-100 rounded-tl-none bg-slate-900/90'
-                          : 'bg-gradient-to-r from-purple-600/30 to-synapse-cyan/20 border border-purple-500/30 text-white rounded-tr-none'
+                          ? 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'
+                          : 'bg-sky-500 text-white border border-sky-600 rounded-tr-none'
                       }`}
                     >
                       {msg.attachments && msg.attachments.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pb-2 border-b border-white/10">
+                        <div className="flex flex-wrap gap-1.5 pb-2 border-b border-slate-200/60">
                           {msg.attachments.map((att, i) => (
                             <span
                               key={i}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-950/60 text-[10px] text-synapse-cyan border border-synapse-cyan/30"
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border ${
+                                isAi
+                                  ? 'bg-sky-50 text-sky-700 border-sky-200'
+                                  : 'bg-sky-600 text-white border-sky-400'
+                              }`}
                             >
                               <FileText className="w-3 h-3" />
                               <span>{att.name}</span>
@@ -327,26 +331,26 @@ How can I help you today?`,
 
                       {/* RAG Citations */}
                       {msg.ragCitations && msg.ragCitations.length > 0 && (
-                        <div className="mt-2.5 pt-2.5 border-t border-slate-800 space-y-2">
-                          <span className="text-[10px] font-bold text-synapse-cyan flex items-center gap-1 uppercase tracking-wider">
-                            <Sparkles className="w-3 h-3 text-synapse-cyan" />
+                        <div className="mt-2.5 pt-2.5 border-t border-slate-200 space-y-2">
+                          <span className="text-[10px] font-bold text-sky-700 flex items-center gap-1 uppercase tracking-wider">
+                            <Sparkles className="w-3 h-3 text-sky-600" />
                             <span>Grounded Document Sources ({msg.ragCitations.length}):</span>
                           </span>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {msg.ragCitations.map((cit, idx) => (
                               <div
                                 key={idx}
-                                className="p-2 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-300 space-y-1"
+                                className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-700 space-y-1"
                               >
-                                <div className="flex items-center justify-between text-[10px] text-slate-400">
-                                  <span className="font-bold text-white truncate max-w-[160px]">
+                                <div className="flex items-center justify-between text-[10px] text-slate-500">
+                                  <span className="font-bold text-slate-900 truncate max-w-[160px]">
                                     {cit.documentTitle}
                                   </span>
-                                  <span className="text-emerald-400 font-mono font-bold">
+                                  <span className="text-emerald-600 font-mono font-bold">
                                     {(cit.relevanceScore * 100).toFixed(0)}% Match
                                   </span>
                                 </div>
-                                <p className="italic text-[10px] text-slate-400 line-clamp-2">
+                                <p className="italic text-[10px] text-slate-500 line-clamp-2">
                                   "{cit.snippet}"
                                 </p>
                               </div>
@@ -355,16 +359,16 @@ How can I help you today?`,
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between pt-1 text-[9px] text-slate-500">
+                      <div className="flex items-center justify-between pt-1 text-[9px] text-slate-400">
                         <span>{msg.timestamp}</span>
                         <button
                           onClick={() => copyToClipboard(msg.content, msg.id)}
-                          className="opacity-0 group-hover:opacity-100 flex items-center gap-1 hover:text-synapse-cyan transition-all"
+                          className="opacity-0 group-hover:opacity-100 flex items-center gap-1 hover:text-sky-600 transition-all cursor-pointer"
                         >
                           {copiedId === msg.id ? (
                             <>
-                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                              <span className="text-emerald-400">Copied</span>
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span className="text-emerald-600">Copied</span>
                             </>
                           ) : (
                             <>
@@ -377,7 +381,7 @@ How can I help you today?`,
                     </div>
 
                     {!isAi && (
-                      <div className="w-8 h-8 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0 mt-0.5">
+                      <div className="w-8 h-8 rounded-xl bg-sky-100 border border-sky-200 flex items-center justify-center text-sky-700 shrink-0 mt-0.5 shadow-2xs">
                         <User className="w-4 h-4" />
                       </div>
                     )}
@@ -387,11 +391,11 @@ How can I help you today?`,
 
               {isGenerating && (
                 <div className="flex gap-3 justify-start">
-                  <div className="w-8 h-8 rounded-xl bg-synapse-cyan/10 border border-synapse-cyan/30 flex items-center justify-center text-synapse-cyan">
-                    <Bot className="w-4 h-4 animate-pulse" />
+                  <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600">
+                    <Bot className="w-4 h-4 animate-pulse text-sky-600" />
                   </div>
-                  <div className="p-3 rounded-2xl glass-panel border-slate-800 text-xs text-slate-400 flex items-center gap-2">
-                    <div className="w-3 h-3 border-2 border-synapse-cyan border-t-transparent rounded-full animate-spin" />
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200 text-xs text-slate-600 flex items-center gap-2 shadow-2xs">
+                    <div className="w-3.5 h-3.5 border-2 border-sky-600 border-t-transparent rounded-full animate-spin" />
                     <span>Synapse is synthesizing response across employee documents...</span>
                   </div>
                 </div>
@@ -403,19 +407,19 @@ How can I help you today?`,
             {/* Attached Context Documents Chips */}
             {attachedDocs.length > 0 && (
               <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0">
                   Attached Context:
                 </span>
                 {attachedDocs.map((doc) => (
                   <div
                     key={doc.id}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700 text-[11px] text-slate-300 shrink-0"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-slate-200 text-[11px] text-slate-700 shrink-0 shadow-2xs"
                   >
-                    <FileText className="w-3 h-3 text-synapse-cyan" />
-                    <span className="truncate max-w-[140px]">{doc.name}</span>
+                    <FileText className="w-3 h-3 text-sky-600" />
+                    <span className="truncate max-w-[140px] font-semibold">{doc.name}</span>
                     <button
                       onClick={() => setAttachedDocs(attachedDocs.filter((d) => d.id !== doc.id))}
-                      className="text-slate-500 hover:text-rose-400"
+                      className="text-slate-400 hover:text-rose-600 cursor-pointer font-bold ml-1"
                     >
                       ×
                     </button>
@@ -447,7 +451,6 @@ How can I help you today?`,
                         content: 'Uploaded file contents indexed for RAG vector search.',
                       },
                     ]);
-
                   }
                 }}
                 className="hidden"
@@ -465,10 +468,10 @@ How can I help you today?`,
                 className="hidden"
               />
 
-              <div className="absolute left-2.5 flex items-center gap-1">
+              <div className="absolute left-2.5 flex items-center gap-1 z-10">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-2 text-slate-400 hover:text-synapse-cyan rounded-xl hover:bg-slate-800 transition-colors"
+                  className="p-2 text-slate-400 hover:text-sky-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
                   title="Attach Document / PDF for RAG"
                 >
                   <Paperclip className="w-4 h-4" />
@@ -476,7 +479,7 @@ How can I help you today?`,
 
                 <button
                   onClick={() => imageInputRef.current?.click()}
-                  className="p-2 text-slate-400 hover:text-synapse-cyan rounded-xl hover:bg-slate-800 transition-colors"
+                  className="p-2 text-slate-400 hover:text-sky-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
                   title="Upload Image / Chart for Deep Learning Vision"
                 >
                   <Camera className="w-4 h-4" />
@@ -494,13 +497,13 @@ How can I help you today?`,
                   }
                 }}
                 placeholder="Ask anything about enterprise documents, policies, or code..."
-                className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-20 pr-14 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50 resize-none custom-scrollbar"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-20 pr-14 py-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 resize-none custom-scrollbar shadow-2xs"
               />
 
               <button
                 onClick={handleSendMessage}
                 disabled={!inputPrompt.trim() || isGenerating}
-                className="absolute right-3 p-2 bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 font-bold rounded-xl hover:shadow-[0_0_15px_rgba(0,242,254,0.4)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="absolute right-3 p-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl shadow-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -519,10 +522,10 @@ How can I help you today?`,
                   setVisionPrompt('What components are visible on this hardware board?');
                   dispatchCompanionGuide('image_search', { speak: true });
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   visionMode === 'image_search'
-                    ? 'bg-synapse-cyan text-slate-950 font-bold'
-                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-sky-500 text-white font-bold shadow-xs'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <Camera className="w-3.5 h-3.5" />
@@ -535,10 +538,10 @@ How can I help you today?`,
                   setVisionPrompt('Explain this chart and calculate revenue growth velocity.');
                   dispatchCompanionGuide('chart_understanding', { speak: true });
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   visionMode === 'chart_understanding'
-                    ? 'bg-purple-500 text-white font-bold'
-                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-sky-500 text-white font-bold shadow-xs'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
@@ -551,10 +554,10 @@ How can I help you today?`,
                   setVisionPrompt('Check if this image is a duplicate or contains altered signatures.');
                   dispatchCompanionGuide('duplicate_detection', { speak: true });
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   visionMode === 'duplicate_detection'
-                    ? 'bg-rose-500 text-white font-bold'
-                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-sky-500 text-white font-bold shadow-xs'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <Copy className="w-3.5 h-3.5" />
@@ -577,10 +580,10 @@ How can I help you today?`,
                     setVisionMode(p.mode);
                     setVisionResponse(null);
                   }}
-                  className={`px-2.5 py-1 rounded-lg border text-[11px] transition-all ${
+                  className={`px-2.5 py-1 rounded-lg border text-[11px] transition-all cursor-pointer ${
                     selectedImageName === p.title
-                      ? 'bg-synapse-cyan/20 border-synapse-cyan text-synapse-cyan font-bold'
-                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                      ? 'bg-sky-50 border-sky-300 text-sky-700 font-bold'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                   {p.category}
@@ -592,7 +595,7 @@ How can I help you today?`,
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {/* Image Preview & Upload Dropzone */}
               <div className="space-y-3">
-                <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950/80 aspect-video flex items-center justify-center">
+                <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 aspect-video flex items-center justify-center shadow-2xs">
                   {selectedImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -601,14 +604,14 @@ How can I help you today?`,
                       className="w-full h-full object-cover object-center"
                     />
                   ) : (
-                    <div className="text-center p-6 text-slate-500">
+                    <div className="text-center p-6 text-slate-400">
                       <Camera className="w-8 h-8 mx-auto mb-2 opacity-50" />
                       <span>No image selected</span>
                     </div>
                   )}
 
-                  <div className="absolute bottom-2 left-2 right-2 p-2 rounded-xl bg-slate-950/80 backdrop-blur border border-slate-800 flex items-center justify-between text-[11px]">
-                    <span className="font-bold text-white truncate max-w-[220px]">
+                  <div className="absolute bottom-2 left-2 right-2 p-2 rounded-xl bg-white/95 backdrop-blur border border-slate-200 flex items-center justify-between text-[11px] shadow-xs">
+                    <span className="font-bold text-slate-800 truncate max-w-[220px]">
                       {selectedImageName}
                     </span>
                     <Badge variant="cyan" size="sm">
@@ -628,7 +631,7 @@ How can I help you today?`,
               {/* Vision Prompt & Results */}
               <div className="space-y-3 flex flex-col justify-between">
                 <div className="space-y-2.5">
-                  <label className="text-xs font-bold text-slate-300 block">
+                  <label className="text-xs font-bold text-slate-700 block">
                     Ask Deep Learning Vision Engine:
                   </label>
                   <div className="relative flex items-center">
@@ -637,31 +640,31 @@ How can I help you today?`,
                       value={visionPrompt}
                       onChange={(e) => setVisionPrompt(e.target.value)}
                       placeholder="e.g. 'What components are visible?' or 'Explain this graph.'"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50 pr-12"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 pr-12 shadow-2xs"
                     />
                     <button
                       onClick={handleRunVisionAnalysis}
                       disabled={isAnalyzingVision}
-                      className="absolute right-1.5 p-2 bg-gradient-to-r from-synapse-cyan to-synapse-purple text-slate-950 font-bold rounded-lg hover:shadow-md disabled:opacity-40 transition-all"
+                      className="absolute right-1.5 p-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg hover:shadow-xs disabled:opacity-40 transition-all cursor-pointer"
                     >
                       <Send className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
                   {/* Results Panel */}
-                  <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5 min-h-[200px] max-h-[260px] overflow-y-auto custom-scrollbar">
+                  <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 space-y-2.5 min-h-[200px] max-h-[260px] overflow-y-auto custom-scrollbar shadow-2xs">
                     {isAnalyzingVision ? (
                       <div className="h-40 flex flex-col items-center justify-center space-y-2 text-center">
-                        <div className="w-7 h-7 border-2 border-synapse-cyan border-t-transparent rounded-full animate-spin" />
-                        <span className="text-xs text-slate-400">
+                        <div className="w-7 h-7 border-2 border-sky-600 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs text-slate-500">
                           Computing deep learning visual features...
                         </span>
                       </div>
                     ) : visionResponse ? (
                       <div className="space-y-3 animate-in fade-in">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                          <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-synapse-cyan" />
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                          <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-sky-600" />
                             <span>{visionResponse.title}</span>
                           </h4>
                           <Badge variant="emerald" size="sm">
@@ -669,29 +672,29 @@ How can I help you today?`,
                           </Badge>
                         </div>
 
-                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                        <p className="text-[11px] text-slate-600 leading-relaxed">
                           {visionResponse.description}
                         </p>
 
                         {/* Chart Metrics */}
                         {visionResponse.chartData && (
-                          <div className="space-y-1.5 p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                            <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">
+                          <div className="space-y-1.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                            <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider block">
                               Extracted Monthly Trend Velocities:
                             </span>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                               {visionResponse.chartData.extractedMetrics.map((m, idx) => (
                                 <div
                                   key={idx}
-                                  className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[10px]"
+                                  className="p-1.5 rounded-lg bg-white border border-slate-200 text-[10px]"
                                 >
-                                  <span className="text-slate-400 block truncate">{m.label}</span>
+                                  <span className="text-slate-500 block truncate">{m.label}</span>
                                   <div className="flex items-baseline justify-between mt-0.5">
-                                    <strong className="text-white">{m.value}</strong>
+                                    <strong className="text-slate-900">{m.value}</strong>
                                     {m.changePercent && (
                                       <span
                                         className={`font-bold ${
-                                          m.changePercent > 0 ? 'text-emerald-400' : 'text-rose-400'
+                                          m.changePercent > 0 ? 'text-emerald-600' : 'text-rose-600'
                                         }`}
                                       >
                                         {m.changePercent > 0 ? `+${m.changePercent}%` : `${m.changePercent}%`}
@@ -707,16 +710,16 @@ How can I help you today?`,
                         {/* Visual Components */}
                         {visionResponse.visualComponents && (
                           <div className="space-y-1">
-                            <span className="text-[10px] font-bold text-synapse-cyan uppercase tracking-wider block">
+                            <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider block">
                               Identified Visual Components:
                             </span>
                             {visionResponse.visualComponents.map((c) => (
                               <div
                                 key={c.id}
-                                className="p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] flex items-center justify-between"
+                                className="p-1.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] flex items-center justify-between"
                               >
-                                <span className="font-semibold text-white">{c.name}</span>
-                                <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                                <span className="font-semibold text-slate-800">{c.name}</span>
+                                <span className="text-[10px] text-emerald-600 font-mono font-bold">
                                   {c.confidence}% Match
                                 </span>
                               </div>
@@ -727,31 +730,31 @@ How can I help you today?`,
                         {/* Similar Images */}
                         {visionResponse.similarMatches && (
                           <div className="space-y-1">
-                            <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block">
+                            <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">
                               Duplicate & Altered Image Matches:
                             </span>
                             {visionResponse.similarMatches.map((m) => (
                               <div
                                 key={m.id}
-                                className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-[11px] space-y-0.5"
+                                className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-[11px] space-y-0.5"
                               >
                                 <div className="flex items-center justify-between">
-                                  <span className="font-bold text-white truncate max-w-[180px]">
+                                  <span className="font-bold text-slate-900 truncate max-w-[180px]">
                                     {m.title}
                                   </span>
                                   <Badge variant={m.similarityScore > 90 ? 'rose' : 'amber'} size="sm">
                                     {m.similarityScore}% Match
                                   </Badge>
                                 </div>
-                                <p className="text-[10px] text-slate-400">{m.varianceDetails}</p>
+                                <p className="text-[10px] text-slate-500">{m.varianceDetails}</p>
                               </div>
                             ))}
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div className="h-36 flex flex-col items-center justify-center space-y-1.5 text-center text-slate-500">
-                        <Sparkles className="w-5 h-5 text-synapse-cyan/60" />
+                      <div className="h-36 flex flex-col items-center justify-center space-y-1.5 text-center text-slate-400">
+                        <Sparkles className="w-5 h-5 text-sky-500/60" />
                         <span>Click "Run Deep Learning Vision" to analyze this scan</span>
                       </div>
                     )}

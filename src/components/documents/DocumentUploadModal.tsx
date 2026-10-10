@@ -51,6 +51,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   const { user } = useAuth();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [manualText, setManualText] = useState('');
+  const [inputTab, setInputTab] = useState<'file' | 'manual'>('file');
   const [docTitle, setDocTitle] = useState('');
   const [targetVault, setTargetVault] = useState<VaultId>(defaultVaultId);
   const [classification, setClassification] = useState<DocumentClassification>('INTERNAL RESTRICTED');
@@ -71,8 +73,14 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile) {
-      setErrorMsg('Please select or drop a document file.');
+    
+    let activeFile = selectedFile;
+    if (!activeFile && manualText.trim()) {
+      activeFile = new File([manualText.trim()], `${docTitle.trim() || 'Manual_Document'}.txt`, { type: 'text/plain' });
+    }
+
+    if (!activeFile) {
+      setErrorMsg('Please select/drop a document file or enter manual document text.');
       return;
     }
 
@@ -87,11 +95,11 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       // 2. Validate
       setCurrentStage('validate');
       const validExtensions = ['pdf', 'docx', 'doc', 'txt', 'csv', 'md', 'json', 'xlsx'];
-      const ext = selectedFile.name.split('.').pop()?.toLowerCase() || 'pdf';
+      const ext = activeFile.name.split('.').pop()?.toLowerCase() || 'pdf';
       if (!validExtensions.includes(ext)) {
         throw new Error(`Unsupported file extension .${ext}. Supported formats: PDF, DOCX, TXT, CSV, JSON, XLSX.`);
       }
-      if (selectedFile.size > 50 * 1024 * 1024) {
+      if (activeFile.size > 50 * 1024 * 1024) {
         throw new Error('File size exceeds 50MB maximum enterprise limit.');
       }
       await new Promise((r) => setTimeout(r, 200));
@@ -101,18 +109,18 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       let extractedContent = '';
       try {
         if (ext === 'txt' || ext === 'csv' || ext === 'md' || ext === 'json') {
-          extractedContent = await selectedFile.text();
+          extractedContent = await activeFile.text();
         } else {
-          extractedContent = `[EXTRACTED ENTERPRISE PAYLOAD: ${selectedFile.name}]\nDocument Title: ${docTitle.trim() || selectedFile.name}\nFile Size: ${(selectedFile.size / 1024).toFixed(1)} KB\nVault: ${targetVault.toUpperCase()}\nSecurity Classification: ${classification}\nIndexed by: ${user?.displayName || 'Specialist'}\n\nKey contractual terms and clauses extracted successfully.`;
+          extractedContent = `[EXTRACTED ENTERPRISE PAYLOAD: ${activeFile.name}]\nDocument Title: ${docTitle.trim() || activeFile.name}\nFile Size: ${(activeFile.size / 1024).toFixed(1)} KB\nVault: ${targetVault.toUpperCase()}\nSecurity Classification: ${classification}\nIndexed by: ${user?.displayName || 'Specialist'}\n\nKey contractual terms and clauses extracted successfully.`;
         }
       } catch (e) {
-        extractedContent = `Document payload: ${selectedFile.name}`;
+        extractedContent = `Document payload: ${activeFile.name}`;
       }
       await new Promise((r) => setTimeout(r, 300));
 
       // 4. Process
       setCurrentStage('process');
-      const wordCount = Math.max(80, Math.floor(selectedFile.size / 6));
+      const wordCount = Math.max(80, Math.floor(activeFile.size / 6));
       const pageCount = Math.max(1, Math.floor(wordCount / 300));
       await new Promise((r) => setTimeout(r, 300));
 
@@ -123,8 +131,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       // 6. Ready
       const newDoc: DocumentItem = {
         id: `DOC-2026-${Math.floor(Math.random() * 9000 + 1000)}`,
-        name: docTitle.trim() || selectedFile.name,
-        size: `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB`,
+        name: docTitle.trim() || activeFile.name,
+        size: `${(activeFile.size / (1024 * 1024)).toFixed(1)} MB`,
         type: (ext === 'doc' ? 'docx' : ext) as any,
         uploadedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -132,7 +140,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
         teamId: targetVault === 'executive' ? 'executive_ops' : targetVault === 'finance' ? 'finance_risk' : targetVault === 'legal' ? 'legal_compliance' : targetVault === 'cyber' ? 'fraud_security' : 'engineering',
         teamName: `${targetVault.charAt(0).toUpperCase() + targetVault.slice(1)} Vault`,
         uploadedBy: user?.displayName || 'Enterprise Employee',
-        uploadedByEmployeeId: user?.employeeId || 'EMP-EXEC-001',
+        uploadedByEmployeeId: user?.employeeId || 'EMP-ENG-001',
         classification,
         securityLevel,
         status: 'READY',
@@ -140,7 +148,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
         wordCount,
         sensitivityScore: classification === 'TOP SECRET' ? 95 : classification === 'CONFIDENTIAL' ? 80 : 45,
         tags: tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
-        summary: `Enterprise document "${docTitle.trim() || selectedFile.name}" ingested into ${targetVault.toUpperCase()} vault under ${classification} classification with Level ${securityLevel} clearance requirements.`,
+        summary: `Enterprise document "${docTitle.trim() || activeFile.name}" ingested into ${targetVault.toUpperCase()} vault under ${classification} classification with Level ${securityLevel} clearance requirements.`,
         content: extractedContent,
         keyClauses: [
           {
@@ -170,15 +178,15 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             version: '1.0.0',
             updatedAt: new Date().toISOString(),
             updatedBy: user?.displayName || 'Specialist',
-            updatedByEmployeeId: user?.employeeId || 'EMP-EXEC-001',
+            updatedByEmployeeId: user?.employeeId || 'EMP-ENG-001',
             changeNote: 'Initial automated ingestion and clause index creation.',
-            size: `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB`,
+            size: `${(activeFile.size / (1024 * 1024)).toFixed(1)} MB`,
           },
         ],
         accessHistory: [
           {
             id: `acc-${Date.now()}`,
-            employeeId: user?.employeeId || 'EMP-EXEC-001',
+            employeeId: user?.employeeId || 'EMP-ENG-001',
             employeeName: user?.displayName || 'Specialist',
             action: 'VIEW',
             timestamp: new Date().toISOString(),
@@ -191,7 +199,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       addNewStoredDocument(newDoc);
       addAuditLogEntry({
         eventType: 'document_access',
-        actorEmployeeId: user?.employeeId || 'EMP-EXEC-001',
+        actorEmployeeId: user?.employeeId || 'EMP-ENG-001',
         actorName: user?.displayName || 'Specialist',
         actorRole: user?.rbacRole || 'Employee',
         targetResource: `${newDoc.name} (${newDoc.id})`,
@@ -244,14 +252,14 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
                   key={s.id}
                   className={`p-2 rounded-lg border text-center text-[10px] font-bold transition-all ${
                     isDone
-                      ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                       : isCurrent
-                      ? 'bg-cyan-500/15 border-synapse-cyan text-synapse-cyan animate-pulse'
-                      : 'bg-slate-950 border-slate-800/80 text-slate-500'
+                      ? 'bg-sky-50 border-sky-200 text-sky-700 shadow-xs'
+                      : 'bg-slate-100 border-slate-200/80 text-slate-400'
                   }`}
                 >
                   <div className="flex items-center justify-center gap-1">
-                    {isDone ? <Check className="w-3 h-3 text-emerald-400" /> : null}
+                    {isDone ? <Check className="w-3 h-3 text-emerald-600" /> : null}
                     <span>{s.label}</span>
                   </div>
                 </div>
@@ -262,42 +270,42 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
         {/* Error Message */}
         {errorMsg && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-2.5 text-xs text-rose-300">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2.5 text-xs text-rose-700">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {/* Success State */}
         {uploadSuccess ? (
-          <div className="p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-4 animate-in fade-in">
+          <div className="p-5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-4 animate-in fade-in">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white">Document Successfully Indexed & Ready</h4>
-                <p className="text-xs text-slate-300">
+                <h4 className="text-sm font-bold text-slate-900">Document Successfully Indexed & Ready</h4>
+                <p className="text-xs text-slate-600">
                   {uploadSuccess.name} is verified in the <strong>{uploadSuccess.vaultId.toUpperCase()}</strong> vault.
                 </p>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
               <div>
-                <span className="text-slate-500 text-[10px] block">Document ID</span>
-                <span className="font-mono text-cyan-400 font-bold">{uploadSuccess.id}</span>
+                <span className="text-slate-400 text-[10px] block">Document ID</span>
+                <span className="font-mono text-sky-600 font-bold">{uploadSuccess.id}</span>
               </div>
               <div>
-                <span className="text-slate-500 text-[10px] block">Classification</span>
-                <span className="font-bold text-slate-200">{uploadSuccess.classification}</span>
+                <span className="text-slate-400 text-[10px] block">Classification</span>
+                <span className="font-bold text-slate-800">{uploadSuccess.classification}</span>
               </div>
               <div>
-                <span className="text-slate-500 text-[10px] block">Pages / Words</span>
-                <span className="font-bold text-slate-200">{uploadSuccess.pageCount}p / {uploadSuccess.wordCount}w</span>
+                <span className="text-slate-400 text-[10px] block">Pages / Words</span>
+                <span className="font-bold text-slate-800">{uploadSuccess.pageCount}p / {uploadSuccess.wordCount}w</span>
               </div>
               <div>
-                <span className="text-slate-500 text-[10px] block">Status</span>
+                <span className="text-slate-400 text-[10px] block">Status</span>
                 <Badge variant="emerald" size="sm">READY</Badge>
               </div>
             </div>
@@ -310,36 +318,70 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* File Dropzone */}
-            <FileDropzone
-              onFileSelect={handleFileSelect}
-              currentFileName={selectedFile?.name}
-              acceptTypes=".pdf, .docx, .doc, .txt, .csv, .md, .json, .xlsx"
-              label="Drop PDF, DOCX, CSV, TXT or XLSX file"
-              sublabel="Real extraction, metadata parsing, and vault indexing"
-            />
+            {/* Input Type Tabs */}
+            <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setInputTab('file')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  inputTab === 'file' ? 'bg-white text-slate-900 shadow-2xs border border-slate-200' : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                File Upload
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputTab('manual')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  inputTab === 'manual' ? 'bg-white text-slate-900 shadow-2xs border border-slate-200' : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Manual Text Entry
+              </button>
+            </div>
+
+            {inputTab === 'file' ? (
+              <FileDropzone
+                onFileSelect={handleFileSelect}
+                currentFileName={selectedFile?.name}
+                acceptTypes=".pdf, .docx, .doc, .txt, .csv, .md, .json, .xlsx"
+                label="Drop PDF, DOCX, CSV, TXT or XLSX file"
+                sublabel="Real extraction, metadata parsing, and vault indexing"
+              />
+            ) : (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Paste Document / Contract Content</label>
+                <textarea
+                  rows={4}
+                  value={manualText}
+                  onChange={(e) => setManualText(e.target.value)}
+                  placeholder="Paste contractual clauses, agreement text, or raw document content here..."
+                  className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                />
+              </div>
+            )}
 
             {/* Document Title */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Document Title</label>
+              <label className="text-xs font-semibold text-slate-700">Document Title</label>
               <input
                 type="text"
                 required
                 value={docTitle}
                 onChange={(e) => setDocTitle(e.target.value)}
                 placeholder="e.g. Master Cloud Services Agreement 2026.pdf"
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
               />
             </div>
 
             {/* Target Vault & Security Level */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Target Vault</label>
+                <label className="text-xs font-semibold text-slate-700">Target Vault</label>
                 <select
                   value={targetVault}
                   onChange={(e) => setTargetVault(e.target.value as VaultId)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="engineering">Engineering Vault</option>
                   <option value="cyber">Cyber & Security Vault</option>
@@ -351,11 +393,11 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Classification</label>
+                <label className="text-xs font-semibold text-slate-700">Classification</label>
                 <select
                   value={classification}
                   onChange={(e) => setClassification(e.target.value as DocumentClassification)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="INTERNAL RESTRICTED">Internal Restricted</option>
                   <option value="CONFIDENTIAL">Confidential</option>
@@ -365,11 +407,11 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Security Clearance</label>
+                <label className="text-xs font-semibold text-slate-700">Security Clearance</label>
                 <select
                   value={securityLevel}
                   onChange={(e) => setSecurityLevel(e.target.value as DocumentSecurityLevel)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="Level 1 Standard">Level 1 Standard</option>
                   <option value="Level 2 Legal">Level 2 Legal</option>
@@ -382,18 +424,18 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
             {/* Tags Input */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Metadata Tags (comma-separated)</label>
+              <label className="text-xs font-semibold text-slate-700">Metadata Tags (comma-separated)</label>
               <input
                 type="text"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
                 placeholder="e.g. Audit, SLA, Contract, SOC2"
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
               />
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
               <Button type="button" variant="secondary" size="sm" onClick={handleResetAndClose} disabled={isProcessing}>
                 Cancel
               </Button>

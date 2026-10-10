@@ -4,7 +4,8 @@ export type TeamId =
   | 'finance_risk'
   | 'legal_compliance'
   | 'executive_ops'
-  | 'product_growth';
+  | 'product_growth'
+  | (string & {});
 
 export type UserRbacRole =
   | 'Employee'
@@ -27,7 +28,7 @@ export interface Team {
   id: TeamId;
   name: string;
   code: string;
-  badgeVariant: 'cyan' | 'purple' | 'rose' | 'emerald' | 'amber' | 'blue';
+  badgeVariant: 'cyan' | 'purple' | 'rose' | 'emerald' | 'amber' | 'blue' | 'indigo';
   description: string;
   lead: string;
   memberCount: number;
@@ -124,6 +125,14 @@ export interface ActivityFeedItem {
   teamId?: TeamId;
 }
 
+export interface FaceIdCredential {
+  id: string;
+  enrolledAt: string;
+  vectorHash: string; // Cryptographic vector mesh hash
+  descriptor: string;
+  deviceCamera: string;
+}
+
 export interface UserProfile {
   uid: string;
   displayName: string;
@@ -144,6 +153,7 @@ export interface UserProfile {
   vaultAccess: VaultId[];
   mfaEnabled: boolean;
   passkeys: PasskeyCredential[];
+  faceId?: FaceIdCredential;
   activeSessions: ActiveSession[];
   photoURL?: string;
   tokenBalance: number;

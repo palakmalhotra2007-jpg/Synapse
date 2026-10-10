@@ -67,55 +67,49 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-20 px-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-950/80 backdrop-blur-md animate-in fade-in"
+        className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm animate-in fade-in"
         onClick={onClose}
       />
 
       {/* Modal Container */}
-      <div className="relative w-full max-w-2xl glass-panel rounded-3xl border border-synapse-cyan/40 bg-slate-900/95 shadow-2xl overflow-hidden flex flex-col z-10 animate-in zoom-in-95">
+      <div className="relative w-full max-w-2xl rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden flex flex-col z-10 animate-in zoom-in-95 text-slate-800">
         {/* Search Input Bar */}
-        <div className="flex items-center px-5 py-4 border-b border-slate-800/80">
-          <Search className="w-5 h-5 text-synapse-cyan mr-3" />
+        <div className="flex items-center px-5 py-4 border-b border-slate-100">
+          <Search className="w-5 h-5 text-sky-600 mr-3 shrink-0" />
           <input
             type="text"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search intelligence, transactions, MoMs, or contracts..."
-            className="w-full bg-transparent text-white placeholder-slate-400 focus:outline-none text-base font-medium"
+            className="w-full bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-base font-medium"
           />
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Quick Shortcut Buttons */}
-        <div className="px-4 py-2.5 bg-slate-950/60 border-b border-slate-800 flex items-center gap-2 overflow-x-auto text-xs">
+        <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2 overflow-x-auto text-xs">
           <span className="text-slate-500 font-semibold shrink-0">Quick Modules:</span>
           <button
-            onClick={() => handleNavigate('/workspace')}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-slate-800 shrink-0"
-          >
-            AI Workspace
-          </button>
-          <button
             onClick={() => handleNavigate('/fraud')}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-rose-400 border border-slate-800 shrink-0"
+            className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 hover:text-sky-700 border border-slate-200 shrink-0 font-medium transition-colors"
           >
             Fraud Analysis
           </button>
           <button
             onClick={() => handleNavigate('/meetings')}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-purple-400 border border-slate-800 shrink-0"
+            className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 hover:text-sky-700 border border-slate-200 shrink-0 font-medium transition-colors"
           >
             Meeting MoM
           </button>
           <button
             onClick={() => handleNavigate('/documents')}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-emerald-400 border border-slate-800 shrink-0"
+            className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 hover:text-sky-700 border border-slate-200 shrink-0 font-medium transition-colors"
           >
             Doc Intelligence
           </button>
@@ -125,8 +119,8 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
         <div className="p-4 overflow-y-auto max-h-[60vh] space-y-4 custom-scrollbar">
           {totalResults === 0 && (
             <div className="text-center py-10 text-slate-400 space-y-2">
-              <Search className="w-8 h-8 text-slate-600 mx-auto" />
-              <p className="text-sm font-semibold">No records match "{query}"</p>
+              <Search className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="text-sm font-semibold text-slate-700">No records match "{query}"</p>
               <p className="text-xs text-slate-500">Try searching for "Cayman", "Cloud Run", "SLA", or "TXN"</p>
             </div>
           )}
@@ -134,8 +128,8 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
           {/* Fraud Results */}
           {filteredTransactions.length > 0 && (
             <div>
-              <div className="flex items-center gap-2 text-xs font-bold text-rose-400 uppercase tracking-wider mb-2 px-2">
-                <ShieldAlert className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-2 text-xs font-bold text-sky-700 uppercase tracking-wider mb-2 px-2">
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
                 <span>Fraud Anomaly Matches ({filteredTransactions.length})</span>
               </div>
               <div className="space-y-1">
@@ -143,18 +137,18 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                   <div
                     key={txn.id}
                     onClick={() => handleNavigate('/fraud')}
-                    className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/80 cursor-pointer group transition-all"
+                    className="flex items-center justify-between p-3 rounded-xl hover:bg-sky-50/60 cursor-pointer group transition-all border border-transparent hover:border-sky-100"
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-white text-sm">{txn.id}</span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 font-mono">
+                        <span className="font-bold text-slate-900 text-sm">{txn.id}</span>
+                        <span className="text-xs px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-100 font-mono font-bold">
                           Risk: {txn.riskScore}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">{txn.accountSender} • ${txn.amount.toLocaleString()}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{txn.accountSender} • ${txn.amount.toLocaleString()}</p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-synapse-cyan transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-sky-600 transition-colors" />
                   </div>
                 ))}
               </div>
@@ -164,8 +158,8 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
           {/* Meeting Results */}
           {filteredMeetings.length > 0 && (
             <div>
-              <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2 px-2">
-                <Video className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-2 text-xs font-bold text-sky-700 uppercase tracking-wider mb-2 px-2">
+                <Video className="w-3.5 h-3.5 text-sky-600" />
                 <span>Meeting Intelligence Matches ({filteredMeetings.length})</span>
               </div>
               <div className="space-y-1">
@@ -173,13 +167,13 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                   <div
                     key={m.id}
                     onClick={() => handleNavigate('/meetings')}
-                    className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/80 cursor-pointer group transition-all"
+                    className="flex items-center justify-between p-3 rounded-xl hover:bg-sky-50/60 cursor-pointer group transition-all border border-transparent hover:border-sky-100"
                   >
                     <div>
-                      <span className="font-semibold text-white text-sm">{m.title}</span>
-                      <p className="text-xs text-slate-400 mt-0.5">{m.mom.attendees.length} Attendees • {m.duration}</p>
+                      <span className="font-bold text-slate-900 text-sm">{m.title}</span>
+                      <p className="text-xs text-slate-500 mt-0.5">{m.mom.attendees.length} Attendees • {m.duration}</p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-synapse-cyan transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-sky-600 transition-colors" />
                   </div>
                 ))}
               </div>
@@ -189,8 +183,8 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
           {/* Document Results */}
           {filteredDocuments.length > 0 && (
             <div>
-              <div className="flex items-center gap-2 text-xs font-bold text-purple-400 uppercase tracking-wider mb-2 px-2">
-                <FileText className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-2 text-xs font-bold text-sky-700 uppercase tracking-wider mb-2 px-2">
+                <FileText className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Document Intelligence Matches ({filteredDocuments.length})</span>
               </div>
               <div className="space-y-1">
@@ -198,13 +192,13 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                   <div
                     key={doc.id}
                     onClick={() => handleNavigate('/documents')}
-                    className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/80 cursor-pointer group transition-all"
+                    className="flex items-center justify-between p-3 rounded-xl hover:bg-sky-50/60 cursor-pointer group transition-all border border-transparent hover:border-sky-100"
                   >
                     <div>
-                      <span className="font-semibold text-white text-sm">{doc.name}</span>
-                      <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{doc.summary}</p>
+                      <span className="font-bold text-slate-900 text-sm">{doc.name}</span>
+                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{doc.summary}</p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-synapse-cyan transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-sky-600 transition-colors" />
                   </div>
                 ))}
               </div>

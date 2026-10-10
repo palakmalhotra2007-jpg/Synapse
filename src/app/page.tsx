@@ -4,33 +4,17 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  Bot,
-  ShieldAlert,
   Video,
   FileText,
-  TrendingUp,
-  Sparkles,
-  CheckCircle2,
-  Clock,
   Zap,
-  Activity,
-  ChevronRight,
   Plus,
   Volume2,
   VolumeX,
   User,
   CheckSquare,
-  Users,
-  ShieldCheck,
-  Building,
-  ArrowRight,
-  KeyRound,
-  Lock,
-  ExternalLink,
-  Layers,
-  AlertTriangle,
   FolderLock,
-  Search,
+  ChevronRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -40,7 +24,6 @@ import { useAuth } from '@/lib/firebase/authContext';
 import { sampleActivityFeed } from '@/lib/mockData/dashboard';
 import { sampleMeetings } from '@/lib/mockData/meetings';
 import { sampleDocuments } from '@/lib/mockData/documents';
-import { sampleTransactions } from '@/lib/mockData/transactions';
 import { ActionItem } from '@/types/meeting';
 import { TEAMS_LIST, getStoredUsers } from '@/lib/auth/usersDb';
 import { UnifiedAIChatModal } from '@/components/workspace/UnifiedAIChatModal';
@@ -61,15 +44,24 @@ export default function DashboardPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskAssignee, setNewTaskAssignee] = useState(user?.displayName || 'Alex Sterling');
+  const [newTaskAssignee, setNewTaskAssignee] = useState(user?.displayName || 'Charvi Sharma');
   const [newTaskDeadline, setNewTaskDeadline] = useState('2026-09-18');
   const [newTaskPriority, setNewTaskPriority] = useState<'HIGH' | 'MEDIUM' | 'LOW'>('HIGH');
 
-  const currentTeamInfo = TEAMS_LIST.find((t) => t.id === user?.teamId) || TEAMS_LIST[0];
-  const allUsers = getStoredUsers();
+  // Filter tasks to ONLY display items assigned to the logged-in user
+  const userActionItems = actionItems.filter((item) => {
+    if (!user) return true;
+    const empIdMatch = Boolean(item.assigneeEmployeeId && item.assigneeEmployeeId === user.employeeId);
+    const nameMatch = Boolean(
+      item.assignee &&
+      user.displayName &&
+      (item.assignee.toLowerCase().includes(user.displayName.toLowerCase()) ||
+        user.displayName.toLowerCase().includes(item.assignee.toLowerCase()))
+    );
+    return empIdMatch || nameMatch;
+  });
 
-  const completedCount = actionItems.filter((i) => i.status === 'COMPLETED').length;
-  const pendingCount = actionItems.filter((i) => i.status !== 'COMPLETED').length;
+  const pendingCount = userActionItems.filter((i) => i.status !== 'COMPLETED').length;
 
   const toggleTaskStatus = (id: string) => {
     setActionItems((prev) =>
@@ -91,7 +83,9 @@ export default function DashboardPage() {
     const newItem: ActionItem = {
       id: `act-${Date.now()}`,
       title: newTaskTitle.trim(),
-      assignee: newTaskAssignee,
+      assignee: user?.displayName || newTaskAssignee,
+      assigneeEmployeeId: user?.employeeId || 'EMP-ENG-001',
+      assigneeDesignation: user?.role || 'Executive Lead',
       deadline: newTaskDeadline,
       priority: newTaskPriority,
       status: 'PENDING',
@@ -153,45 +147,38 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-full text-slate-100 min-h-screen">
-      {/* Executive Command Overview Banner */}
-      <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8 bg-gradient-to-r from-slate-900/95 via-slate-900/90 to-slate-950 border border-slate-800 shadow-xl">
+    <div className="p-4 sm:p-6 space-y-6 max-w-full text-slate-800 min-h-screen text-left bg-slate-50">
+      {/* User Welcome Banner */}
+      <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8 bg-white border border-slate-200/80 shadow-xs">
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="space-y-3 max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-cyan-400 text-xs font-semibold">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>SYNAPSE SECURE ENTERPRISE OS</span>
-              </div>
               <Badge variant="cyan" size="sm">
                 {user?.teamName || 'Executive Operations'}
               </Badge>
-              <span className="text-xs font-mono px-2.5 py-0.5 bg-slate-950 text-cyan-400 border border-slate-800 rounded-md font-bold">
-                {user?.employeeId || 'EMP-EXEC-001'}
-              </span>
-              <span className="text-xs font-mono px-2.5 py-0.5 bg-purple-500/10 text-purple-300 border border-purple-500/30 rounded-md font-bold">
-                Clearance: {user?.securityClearance || 'Level 5 Executive'}
+              <span className="text-xs font-mono px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded-md font-bold">
+                {user?.employeeId || 'EMP-ENG-001'}
               </span>
             </div>
 
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Enterprise Operations Command
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Welcome back, {user?.displayName || 'Charvi Sharma'}
               </h1>
-              <p className="text-slate-300 text-sm mt-1 leading-relaxed">
-                Logged in as <strong className="text-white cursor-pointer hover:text-cyan-400 underline decoration-dotted" onClick={() => handleOpenUserProfile(user)}>{user?.displayName || 'Alex Sterling'}</strong> ({user?.role}). Clearance: <strong className="text-purple-300">{user?.securityClearance}</strong>. Active Passkeys: <strong className="text-emerald-400">{user?.passkeys?.length || 1} Registered</strong>.
+              <p className="text-slate-500 text-xs sm:text-sm mt-1 leading-relaxed">
+                {user?.role} • {user?.department || 'Operations'}
               </p>
             </div>
 
-            {/* Quick module action pills */}
-            <div className="pt-2 flex flex-wrap items-center gap-3">
+            {/* Quick action buttons */}
+            <div className="pt-2 flex flex-wrap items-center gap-2.5">
               <Button
-                variant="glow"
+                variant="primary"
                 size="sm"
                 onClick={() => handleOpenUserProfile(user)}
                 leftIcon={<User className="w-4 h-4" />}
               >
-                View My Profile & Passkeys
+                View Profile
               </Button>
 
               <Link href="/documents">
@@ -199,158 +186,92 @@ export default function DashboardPage() {
                   variant="outline"
                   size="sm"
                   leftIcon={<FileText className="w-4 h-4" />}
-                  className="border-slate-700 text-slate-200 hover:text-cyan-400 hover:border-cyan-500/50"
                 >
-                  Document Vaults
+                  Document Workspace
                 </Button>
               </Link>
 
-              <Link href="/fraud">
+              <Link href="/meetings">
                 <Button
                   variant="outline"
                   size="sm"
-                  leftIcon={<ShieldAlert className="w-4 h-4" />}
-                  className="border-slate-700 text-slate-200 hover:text-rose-400 hover:border-rose-500/50"
+                  leftIcon={<Video className="w-4 h-4" />}
                 >
-                  Omni Fraud Forensics
-                </Button>
-              </Link>
-
-              <Link href="/security">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<KeyRound className="w-4 h-4" />}
-                  className="border-slate-700 text-slate-200 hover:text-purple-400 hover:border-purple-500/50"
-                >
-                  Access & Audit Logs
+                  Meetings & Tasks
                 </Button>
               </Link>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Quick Security Status Badge */}
-          <div className="flex flex-col gap-2 p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-xs shrink-0 w-full lg:w-72">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <span className="text-slate-400 font-semibold">Security State</span>
-              <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                SECURE
+      {/* User Telemetry Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="p-4 space-y-2">
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span className="font-medium">Assigned Tasks</span>
+            <div className="p-2 rounded-lg bg-sky-50 text-sky-600">
+              <CheckSquare className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-extrabold text-slate-900">{pendingCount}</span>
+            <span className="text-xs text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">
+              Pending
+            </span>
+          </div>
+          <p className="text-xs text-slate-500">Action items assigned to you</p>
+        </Card>
+
+        <Link href="/documents" className="block">
+          <Card className="p-4 space-y-2 hover:border-sky-300 transition-all group">
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <span className="font-medium">Vault Documents</span>
+              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
+                <FolderLock className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-extrabold text-slate-900">{sampleDocuments.length}</span>
+              <span className="text-xs text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                Available
               </span>
             </div>
-            <div className="flex justify-between text-slate-300 pt-1">
-              <span>RBAC Role:</span>
-              <span className="font-mono text-cyan-400 font-bold">{user?.rbacRole || 'Admin'}</span>
+            <p className="text-xs text-slate-500">Indexed team & vault documents</p>
+          </Card>
+        </Link>
+
+        <Link href="/meetings" className="block">
+          <Card className="p-4 space-y-2 hover:border-sky-300 transition-all group">
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <span className="font-medium">Recent Meetings</span>
+              <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition-colors">
+                <Video className="w-4 h-4" />
+              </div>
             </div>
-            <div className="flex justify-between text-slate-300">
-              <span>Active Sessions:</span>
-              <span className="font-mono text-white font-bold">{user?.activeSessions?.length || 1} Device</span>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-extrabold text-slate-900">{sampleMeetings.length}</span>
+              <span className="text-xs text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                Briefings
+              </span>
             </div>
-            <div className="flex justify-between text-slate-300">
-              <span>MFA / Passkeys:</span>
-              <span className="font-mono text-emerald-400 font-bold">WebAuthn Active</span>
-            </div>
-          </div>
-        </div>
+            <p className="text-xs text-slate-500">Transcripts and MoMs</p>
+          </Card>
+        </Link>
       </div>
 
-      {/* Operational Summary Telemetry Grid */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-            <Activity className="w-4 h-4 text-cyan-400" />
-            <span>Platform Intelligence Telemetry</span>
-          </h3>
-          <span className="text-xs text-slate-500">Live system status</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link href="/documents" className="block">
-            <Card className="p-4 space-y-2 hover:border-cyan-500/40 transition-all group">
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span className="font-medium">Vault Documents</span>
-                <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500/20 transition-colors">
-                  <FolderLock className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-extrabold text-white">{sampleDocuments.length}</span>
-                <span className="text-xs text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded-full">
-                  6 Vaults
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">Classified contracts & policies</p>
-            </Card>
-          </Link>
-
-          <Link href="/fraud" className="block">
-            <Card className="p-4 space-y-2 hover:border-rose-500/40 transition-all group">
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span className="font-medium">AML Transactions</span>
-                <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 group-hover:bg-rose-500/20 transition-colors">
-                  <ShieldAlert className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-extrabold text-white">{sampleTransactions.length}</span>
-                <span className="text-xs text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded-full">
-                  {sampleTransactions.filter(t => t.riskScore >= 70).length} Flagged
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">Wire ledger forensic checks</p>
-            </Card>
-          </Link>
-
-          <Link href="/meetings" className="block">
-            <Card className="p-4 space-y-2 hover:border-purple-500/40 transition-all group">
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span className="font-medium">Executive MoMs</span>
-                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20 transition-colors">
-                  <Video className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-extrabold text-white">{sampleMeetings.length}</span>
-                <span className="text-xs text-purple-400 font-bold bg-purple-500/10 px-2 py-0.5 rounded-full">
-                  Transcribed
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">Briefings with action item sync</p>
-            </Card>
-          </Link>
-
-          <Link href="/employees" className="block">
-            <Card className="p-4 space-y-2 hover:border-emerald-500/40 transition-all group">
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span className="font-medium">Employee Directory</span>
-                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20 transition-colors">
-                  <Users className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-extrabold text-white">{allUsers.length}</span>
-                <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                  All Active
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">Personnel profiles & clearances</p>
-            </Card>
-          </Link>
-        </div>
-      </div>
-
-      {/* Main Content Layout: Action Items / Tasks & Intelligence Activity */}
+      {/* Main Content Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Columns: Priority Deliverables & Action Items */}
+        {/* Left 2 Columns: Action Items */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <CheckSquare className="w-4 h-4 text-cyan-400" />
-                  <span>Assigned Action Items & Deliverables ({pendingCount} Pending)</span>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <CheckSquare className="w-4 h-4 text-sky-600" />
+                  <span>Your Action Items ({pendingCount} Pending)</span>
                 </h3>
-                <p className="text-xs text-slate-400">One-click completion, status tracking and audio briefing</p>
+                <p className="text-xs text-slate-500">Track and complete your assigned deliverables</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -360,14 +281,14 @@ export default function DashboardPage() {
                   onClick={speakAllPendingTasks}
                   leftIcon={
                     isSpeakingTasks ? (
-                      <VolumeX className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                      <VolumeX className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
                     ) : (
-                      <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
+                      <Volume2 className="w-3.5 h-3.5 text-sky-600" />
                     )
                   }
-                  className="text-xs border-slate-700"
+                  className="text-xs"
                 >
-                  {isSpeakingTasks ? 'Stop Audio' : 'Audio Briefing'}
+                  {isSpeakingTasks ? 'Stop Audio' : 'Listen Briefing'}
                 </Button>
 
                 <Button
@@ -383,181 +304,101 @@ export default function DashboardPage() {
             </div>
 
             {/* Task Checklist Items */}
-            <div className="space-y-2.5">
-              {actionItems.map((item) => {
-                const isDone = item.status === 'COMPLETED';
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => toggleTaskStatus(item.id)}
-                    className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${
-                      isDone
-                        ? 'bg-slate-950/40 border-slate-800/60 text-slate-500'
-                        : 'bg-slate-900/80 border-slate-800 hover:border-cyan-500/40 text-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <input
-                        type="checkbox"
-                        checked={isDone}
-                        onChange={() => {}}
-                        className="w-4 h-4 rounded accent-cyan-400 cursor-pointer shrink-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className={`text-xs font-bold truncate ${isDone ? 'line-through text-slate-500' : 'text-white group-hover:text-cyan-300'}`}>
-                          {item.title}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400">
-                          <span>Owner: <strong className="text-slate-300">{item.assignee}</strong></span>
-                          <span>•</span>
-                          <span>Due: <strong className="text-slate-300">{item.deadline}</strong></span>
+            <div className="space-y-2">
+              {userActionItems.length === 0 ? (
+                <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  <p className="text-xs text-slate-500 font-medium">No pending action items assigned to you.</p>
+                </div>
+              ) : (
+                userActionItems.map((item) => {
+                  const isDone = item.status === 'COMPLETED';
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => toggleTaskStatus(item.id)}
+                      className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${
+                        isDone
+                          ? 'bg-slate-50 border-slate-100 text-slate-400'
+                          : 'bg-white border-slate-100 hover:border-sky-200 text-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <input
+                          type="checkbox"
+                          checked={isDone}
+                          onChange={() => {}}
+                          className="w-4 h-4 rounded accent-sky-600 cursor-pointer shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-xs font-bold truncate ${isDone ? 'line-through text-slate-400' : 'text-slate-900 group-hover:text-sky-600'}`}>
+                            {item.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
+                            <span>Assignee: <strong className="text-slate-700">{item.assignee}</strong></span>
+                            <span>•</span>
+                            <span>Due: <strong className="text-slate-700">{item.deadline}</strong></span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
-                      <Badge
-                        variant={item.priority === 'HIGH' ? 'rose' : item.priority === 'MEDIUM' ? 'amber' : 'slate'}
-                        size="sm"
-                      >
-                        {item.priority}
-                      </Badge>
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        <Badge
+                          variant={item.priority === 'HIGH' ? 'rose' : item.priority === 'MEDIUM' ? 'amber' : 'slate'}
+                          size="sm"
+                        >
+                          {item.priority}
+                        </Badge>
 
-                      <button
-                        onClick={(e) => speakSingleTask(item, e)}
-                        className="p-1.5 text-slate-400 hover:text-cyan-400 rounded-lg hover:bg-slate-800 transition-colors"
-                        title="Speak this item aloud"
-                      >
-                        <Volume2 className="w-3.5 h-3.5" />
-                      </button>
+                        <button
+                          onClick={(e) => speakSingleTask(item, e)}
+                          className="p-1.5 text-slate-400 hover:text-sky-600 rounded-lg hover:bg-slate-100 transition-colors"
+                          title="Speak this item aloud"
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </Card>
-
-          {/* Quick Navigation Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Link
-              href="/fraud"
-              className="p-4 rounded-xl bg-slate-900/60 hover:bg-slate-900 hover:border-rose-500/40 transition-all border border-slate-800 group block"
-            >
-              <div className="w-9 h-9 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center mb-2.5">
-                <ShieldAlert className="w-4 h-4" />
-              </div>
-              <h4 className="text-xs font-bold text-white group-hover:text-rose-400 transition-colors">
-                Omni Fraud Analysis
-              </h4>
-              <p className="text-xs text-slate-400 mt-1">Wire transfer anomaly detection & forensic notes</p>
-            </Link>
-
-            <Link
-              href="/meetings"
-              className="p-4 rounded-xl bg-slate-900/60 hover:bg-slate-900 hover:border-cyan-500/40 transition-all border border-slate-800 group block"
-            >
-              <div className="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-2.5">
-                <Video className="w-4 h-4" />
-              </div>
-              <h4 className="text-xs font-bold text-white group-hover:text-cyan-400 transition-colors">
-                Meeting Intelligence
-              </h4>
-              <p className="text-xs text-slate-400 mt-1">AI voice MoM generation & actionable task export</p>
-            </Link>
-
-            <Link
-              href="/documents"
-              className="p-4 rounded-xl bg-slate-900/60 hover:bg-slate-900 hover:border-emerald-500/40 transition-all border border-slate-800 group block"
-            >
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-2.5">
-                <FileText className="w-4 h-4" />
-              </div>
-              <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">
-                Document Vaults
-              </h4>
-              <p className="text-xs text-slate-400 mt-1">RBAC secure vaults, 6-stage upload & diff tool</p>
-            </Link>
-          </div>
         </div>
 
-        {/* Right 1 Column: Intelligence Activity Stream & Team Personnel */}
+        {/* Right Column: Recent Activity Feed */}
         <div className="space-y-6">
-          {/* Intelligence Activity Stream */}
           <Card className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Zap className="w-4 h-4 text-cyan-400" />
-                <span>System Security & Audit Stream</span>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-sky-600" />
+                <span>Recent Activity</span>
               </h3>
-              <Link href="/security" className="text-xs text-cyan-400 hover:underline">
-                View all
-              </Link>
             </div>
 
-            <div className="space-y-3 max-h-72 overflow-y-auto custom-scrollbar">
-              {sampleActivityFeed.map((item) => (
+            <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+              {sampleActivityFeed.slice(0, 4).map((item) => (
                 <Link
                   key={item.id}
                   href={item.linkUrl}
-                  className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-800/60 transition-colors group block"
+                  className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors group block"
                 >
-                  <div className="mt-0.5">
+                  <div className="mt-0.5 shrink-0">
                     <Badge variant={item.badgeVariant} size="sm">
                       {item.badgeText}
                     </Badge>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-bold text-slate-200 group-hover:text-cyan-400 transition-colors truncate">
+                    <h4 className="text-xs font-bold text-slate-800 group-hover:text-sky-600 transition-colors truncate">
                       {item.title}
                     </h4>
-                    <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
                       {item.description}
                     </p>
-                    <span className="text-[10px] text-slate-500 mt-1 block font-mono">
+                    <span className="text-[10px] text-slate-400 mt-1 block font-mono">
                       {item.timestamp}
                     </span>
                   </div>
                 </Link>
-              ))}
-            </div>
-          </Card>
-
-          {/* Department Specialists Quick Access */}
-          <Card className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Users className="w-4 h-4 text-purple-400" />
-                <span>Department Specialists</span>
-              </h3>
-              <Link href="/employees" className="text-xs text-cyan-400 hover:underline">
-                Directory
-              </Link>
-            </div>
-
-            <div className="space-y-2">
-              {allUsers.slice(0, 4).map((u) => (
-                <div
-                  key={u.uid}
-                  onClick={() => handleOpenUserProfile(u)}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-800/60 cursor-pointer transition-colors group"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 shrink-0 group-hover:border-cyan-500/50">
-                      {u.displayName.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">
-                        {u.displayName}
-                      </p>
-                      <p className="text-[10px] text-slate-400 truncate">
-                        {u.role}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant={u.securityClearance.includes('Executive') ? 'rose' : u.securityClearance.includes('Cyber') ? 'cyan' : 'amber'} size="sm">
-                    {u.securityClearance.split(' ')[2] || u.securityClearance}
-                  </Badge>
-                </div>
               ))}
             </div>
           </Card>
@@ -571,47 +412,47 @@ export default function DashboardPage() {
         title="Create New Action Item"
         maxWidth="md"
       >
-        <form onSubmit={handleAddNewTask} className="space-y-4">
+        <form onSubmit={handleAddNewTask} className="space-y-4 text-left">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Deliverable Title</label>
+            <label className="text-xs font-semibold text-slate-700">Deliverable Title</label>
             <input
               type="text"
               required
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
-              placeholder="e.g. Audit cloud database encryption keys"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+              placeholder="e.g. Audit cloud database keys"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Assignee</label>
+              <label className="text-xs font-semibold text-slate-700">Assignee</label>
               <input
                 type="text"
                 value={newTaskAssignee}
                 onChange={(e) => setNewTaskAssignee(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500/50"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Deadline</label>
+              <label className="text-xs font-semibold text-slate-700">Deadline</label>
               <input
                 type="date"
                 value={newTaskDeadline}
                 onChange={(e) => setNewTaskDeadline(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Priority</label>
+            <label className="text-xs font-semibold text-slate-700">Priority</label>
             <select
               value={newTaskPriority}
               onChange={(e) => setNewTaskPriority(e.target.value as any)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
             >
               <option value="HIGH">HIGH Priority</option>
               <option value="MEDIUM">MEDIUM Priority</option>

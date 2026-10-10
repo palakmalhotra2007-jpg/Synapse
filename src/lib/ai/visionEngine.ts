@@ -277,7 +277,7 @@ export class SynapseVisionEngine {
         similarityScore: 76.8,
         matchType: 'STRUCTURAL_MATCH',
         varianceDetails: 'Similar color distribution and bar chart layout but different quarterly numbers.',
-        uploadedBy: 'Alex Sterling (EMP-EXEC-001)',
+        uploadedBy: 'Charvi Sharma (EMP-ENG-001)',
         teamName: 'Executive Leadership & Board',
         detectedAt: '2026-08-25T11:15:00Z',
       },

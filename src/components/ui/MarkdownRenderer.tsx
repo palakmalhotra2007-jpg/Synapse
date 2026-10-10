@@ -70,7 +70,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             // H3
             if (trimmed.startsWith('### ')) {
               return (
-                <h3 key={lIdx} className="text-base font-bold text-white pt-2 pb-1 border-b border-slate-800/60 flex items-center gap-2">
+                <h3 key={lIdx} className="text-sm font-bold text-slate-900 pt-2 pb-1 border-b border-slate-200/60 flex items-center gap-2">
                   {formatInline(trimmed.slice(4))}
                 </h3>
               );
@@ -78,7 +78,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             // H2
             if (trimmed.startsWith('## ')) {
               return (
-                <h2 key={lIdx} className="text-lg font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-synapse-cyan pt-3 pb-1">
+                <h2 key={lIdx} className="text-base font-extrabold text-slate-900 pt-3 pb-1">
                   {formatInline(trimmed.slice(3))}
                 </h2>
               );
@@ -86,7 +86,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             // H1
             if (trimmed.startsWith('# ')) {
               return (
-                <h1 key={lIdx} className="text-xl font-black text-white pt-3 pb-1">
+                <h1 key={lIdx} className="text-lg font-black text-slate-900 pt-3 pb-1">
                   {formatInline(trimmed.slice(2))}
                 </h1>
               );
@@ -95,8 +95,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             // Bullet list
             if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
               return (
-                <div key={lIdx} className="flex items-start gap-2 pl-2 text-slate-200">
-                  <span className="text-synapse-cyan font-bold mt-0.5">•</span>
+                <div key={lIdx} className="flex items-start gap-2 pl-2 text-slate-700">
+                  <span className="text-sky-600 font-bold mt-0.5">•</span>
                   <div className="flex-1 leading-relaxed">{formatInline(trimmed.slice(2))}</div>
                 </div>
               );
@@ -106,8 +106,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             const numMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
             if (numMatch) {
               return (
-                <div key={lIdx} className="flex items-start gap-2.5 pl-2 text-slate-200">
-                  <span className="text-synapse-cyan font-bold font-mono text-xs mt-0.5">{numMatch[1]}.</span>
+                <div key={lIdx} className="flex items-start gap-2.5 pl-2 text-slate-700">
+                  <span className="text-sky-600 font-bold font-mono text-xs mt-0.5">{numMatch[1]}.</span>
                   <div className="flex-1 leading-relaxed">{formatInline(numMatch[2])}</div>
                 </div>
               );
@@ -115,7 +115,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
             // Standard Paragraph
             return (
-              <p key={lIdx} className="leading-relaxed text-slate-200">
+              <p key={lIdx} className="leading-relaxed text-slate-700">
                 {formatInline(line)}
               </p>
             );
@@ -135,7 +135,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
         return (
           <code
             key={cIdx}
-            className="px-1.5 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-synapse-cyan text-[12px] font-mono mx-0.5"
+            className="px-1.5 py-0.5 rounded-md bg-sky-50 border border-sky-200 text-sky-700 text-[12px] font-mono mx-0.5 font-bold"
           >
             {cPart.slice(1, -1)}
           </code>
@@ -147,7 +147,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
       return boldParts.map((bPart, bIdx) => {
         if (bPart.startsWith('**') && bPart.endsWith('**')) {
           return (
-            <strong key={bIdx} className="font-bold text-white">
+            <strong key={bIdx} className="font-bold text-slate-900">
               {bPart.slice(2, -2)}
             </strong>
           );
@@ -158,7 +158,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
         return italicParts.map((iPart, iIdx) => {
           if (iPart.startsWith('*') && iPart.endsWith('*') && !iPart.startsWith('**')) {
             return (
-              <em key={iIdx} className="italic text-slate-300">
+              <em key={iIdx} className="italic text-slate-600">
                 {iPart.slice(1, -1)}
               </em>
             );
@@ -169,5 +169,5 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
     });
   };
 
-  return <div className={`space-y-2.5 text-sm ${className}`}>{renderFormattedText(content)}</div>;
+  return <div className={`space-y-2.5 text-xs ${className}`}>{renderFormattedText(content)}</div>;
 };

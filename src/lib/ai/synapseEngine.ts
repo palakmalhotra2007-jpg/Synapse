@@ -21,10 +21,11 @@ export class SynapseAIEngine {
     userPrompt: string,
     modelId: AIModelId = 'synapse-flash-v4',
     history: ChatMessage[] = [],
-    attachedDocuments: DocumentItem[] = []
+    attachedDocuments: DocumentItem[] = [],
+    executionMode: 'preset' | 'autonomous' = 'preset'
   ): Promise<{ responseText: string; citations?: any[]; tokensConsumed: number }> {
     // Simulate high-speed AI inference latency
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await new Promise((resolve) => setTimeout(resolve, executionMode === 'autonomous' ? 900 : 400));
 
     const promptTrimmed = userPrompt.trim();
     const promptLower = promptTrimmed.toLowerCase();
@@ -590,7 +591,7 @@ Let me know if you would like me to extract specific terms or run deeper vector 
     transcriptText?: string,
     customParticipants?: MeetingParticipant[]
   ): Promise<MinutesOfMeeting> {
-    await new Promise((resolve) => setTimeout(resolve, 900));
+    await new Promise((resolve) => setTimeout(resolve, 600));
 
     const participants = customParticipants && customParticipants.length > 0
       ? customParticipants
@@ -598,7 +599,62 @@ Let me know if you would like me to extract specific terms or run deeper vector 
 
     const attendeesFormatted = participants.map((p) => `${p.name} (${p.designation})`);
 
-    if (transcriptText && transcriptText.length > 30) {
+    if (transcriptText && transcriptText.length > 10) {
+      const text = transcriptText.trim();
+      
+      // Extract title from text if present
+      let meetingTitle = 'AI Transcribed Strategy & Operations Sync';
+      const titleMatch = text.match(/YouTube\/Web Link Session:\s*"([^"]+)"/i) ||
+                         text.match(/Meeting Session:\s*"([^"]+)"/i) ||
+                         text.match(/^Title:\s*(.+)$/m);
+      if (titleMatch && titleMatch[1]) {
+        meetingTitle = titleMatch[1].trim();
+      } else if (text.startsWith('http')) {
+        try {
+          const urlObj = new URL(text.split('\n')[0]);
+          meetingTitle = `${urlObj.hostname.replace('www.', '').toUpperCase()} Recording Session`;
+        } catch (e) {}
+      } else {
+        const firstLine = text.split('\n')[0].replace(/^#+\s*/, '').trim();
+        if (firstLine.length > 5 && firstLine.length < 90) {
+          meetingTitle = firstLine;
+        }
+      }
+
+      let channelName = '';
+      const channelMatch = text.match(/Channel:\s*"([^"]+)"/i);
+      if (channelMatch && channelMatch[1]) {
+        channelName = channelMatch[1].trim();
+      }
+
+      let videoDesc = '';
+      const descMatch = text.match(/Description:\s*"([^"]+)"/i);
+      if (descMatch && descMatch[1]) {
+        videoDesc = descMatch[1].trim();
+      }
+
+      // Extract key sentences / highlights from text
+      const cleanSentences = text
+        .split(/(?<=[.?!])\s+|\n+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 15 && !s.toLowerCase().startsWith('http') && !s.toLowerCase().includes('session:') && !s.toLowerCase().startsWith('channel:') && !s.toLowerCase().startsWith('description:'));
+
+      const topicKeywords = Array.from(
+        new Set(
+          `${meetingTitle} ${videoDesc}`
+            .replace(/[^a-zA-Z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter((w) => w.length > 3 && !['youtube', 'meeting', 'session', 'video', 'recording', 'link', 'https', 'http', 'channel', 'description', 'welcome', 'everyone', 'today', 'about', 'this', 'with', 'from', 'source', 'utterance'].includes(w.toLowerCase()))
+        )
+      );
+
+      const primaryTopic = topicKeywords.slice(0, 2).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Operational Analysis';
+      const secondaryTopic = topicKeywords.slice(2, 4).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Strategic Implementation';
+
+      const sentence1 = cleanSentences[0] || (videoDesc ? videoDesc.slice(0, 180) + '...' : `Detailed operational review for "${meetingTitle}".`);
+      const sentence2 = cleanSentences[1] || `Key focus areas included technical execution, topic analysis for ${primaryTopic}, and actionable deliverables.`;
+      const sentence3 = cleanSentences[2] || `Strategic priorities were established to ensure on-time execution across all milestones.`;
+
       const p1 = participants[0] || sampleParticipants[0];
       const p2 = participants[1] || sampleParticipants[1];
       const p3 = participants[2] || sampleParticipants[2];
@@ -606,87 +662,88 @@ Let me know if you would like me to extract specific terms or run deeper vector 
       const actionItems: ActionItem[] = [
         {
           id: `act-${Date.now()}-1`,
-          title: 'Implement transcript recommendations & auto-scale RAG indexers',
+          title: `Execute key deliverables for ${meetingTitle}`,
           assignee: p1.name,
           assigneeDesignation: p1.designation,
           assigneeTeam: p1.team,
-          deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          deadline: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           priority: 'HIGH',
           status: 'PENDING',
-          category: 'Engineering',
-          taskSummary: 'Deploy auto-scaling compute instance allocations to staging.',
-          spokenText: `Action item for ${p1.name}, ${p1.designation}: Implement transcript recommendations and auto-scale RAG indexers by next week, High Priority.`,
+          category: p1.team || 'Engineering',
+          taskSummary: `Implement core specifications outlined in ${meetingTitle}.`,
+          spokenText: `Action item for ${p1.name}, ${p1.designation}: Execute key deliverables for ${meetingTitle} by next sprint, High Priority.`,
         },
         {
           id: `act-${Date.now()}-2`,
-          title: 'Verify SOC2 encryption key rotation & security compliance trail',
+          title: `Verify security, compliance & requirements for ${primaryTopic}`,
           assignee: p2.name,
           assigneeDesignation: p2.designation,
           assigneeTeam: p2.team,
-          deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          deadline: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           priority: 'HIGH',
           status: 'PENDING',
           category: 'Compliance',
-          taskSummary: 'Validate Firestore rotating keys and export compliance log.',
-          spokenText: `Action item for ${p2.name}, ${p2.designation}: Verify SOC2 encryption key rotation and security compliance trail, High Priority.`,
+          taskSummary: `Audit compliance and operational requirements associated with ${primaryTopic}.`,
+          spokenText: `Action item for ${p2.name}, ${p2.designation}: Verify requirements for ${primaryTopic}, High Priority.`,
         },
         {
           id: `act-${Date.now()}-3`,
-          title: 'Publish executive briefing & align sprint deliverables',
+          title: `Publish executive summary & track progress for ${secondaryTopic || primaryTopic}`,
           assignee: p3.name,
           assigneeDesignation: p3.designation,
           assigneeTeam: p3.team,
-          deadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          deadline: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           priority: 'MEDIUM',
           status: 'PENDING',
           category: 'Operations',
-          taskSummary: 'Circulate synthesized MoM and voice action items to all stakeholders.',
-          spokenText: `Action item for ${p3.name}, ${p3.designation}: Publish executive briefing and align sprint deliverables, Medium Priority.`,
+          taskSummary: `Circulate MoM report and voice briefings to all department leads.`,
+          spokenText: `Action item for ${p3.name}, ${p3.designation}: Publish executive summary for ${secondaryTopic || primaryTopic}, Medium Priority.`,
         },
       ];
 
       return {
-        meetingTitle: 'AI-Transcribed Operational Strategy Session',
+        meetingTitle,
         date: new Date().toISOString().split('T')[0],
-        duration: '35 mins',
+        duration: '28 mins',
         attendees: attendeesFormatted,
         participants,
-        executiveSummary: `AI-synthesized Minutes of Meeting extracted from ingested audio transcript. The session focused on universal multi-document RAG deployment, omni fraud cross-checks, and assigning direct action items across team leads.`,
+        executiveSummary: `AI-synthesized Minutes of Meeting extracted for "${meetingTitle}"${channelName ? ` (${channelName})` : ''}. ${sentence1} ${sentence2}`,
         mainThingsToDo: [
-          'Deploy high-throughput multi-document vector indexer for universal search.',
-          'Execute cross-document invoice tampering audit on all wire transactions.',
-          'Broadcast voice-enabled action items to all meeting participants.',
-          'Lock in SOC2 encryption key rotation with InfraSec team.',
+          `Finalize core roadmap and implementation steps for "${meetingTitle}".`,
+          `Validate technical requirements and security controls for ${primaryTopic}.`,
+          `Distribute voice-enabled action items to all designated team members.`,
+          `Schedule follow-up review for ${secondaryTopic || primaryTopic} progress milestones.`,
         ],
-        spokenSummary: `Meeting summary for transcribed session. The team aligned on rolling out universal document RAG search and omni fraud cross-checks. Three high priority action items have been assigned with immediate deliverables.`,
+        spokenSummary: `Meeting summary for "${meetingTitle}". ${sentence1} Key action deliverables have been assigned to ${p1.name}, ${p2.name}, and ${p3.name} with target deadlines.`,
         agendaTopics: [
           {
-            topic: 'Universal Document RAG & Infrastructure',
+            topic: `${primaryTopic} - Strategic Overview & Core Objectives`,
             keyPoints: [
-              'Ingested audio emphasizes need for cross-document knowledge synthesis.',
-              'Recommended auto-scaling vector storage clusters for high throughput.',
+              sentence1,
+              sentence2,
             ],
-            outcomes: 'Approved architecture roadmap.',
+            outcomes: `Approved tactical strategy and operational baseline for ${primaryTopic}.`,
           },
           {
-            topic: 'Direct Task Distribution & Voice Briefings',
+            topic: `${secondaryTopic || 'Implementation'} - Delivery & Milestone Planning`,
             keyPoints: [
-              'Delegated critical deliverables with designated owners and priority ratings.',
-              'Activated Spoken Voice API for natural audio task briefings.',
+              sentence3,
+              `Delegated action deliverables to designated owners with priority ratings.`,
             ],
-            outcomes: 'Action items assigned to designated personnel.',
+            outcomes: `Action items assigned and linked to Spoken Voice API briefings.`,
           },
         ],
         keyDecisions: [
-          'Approved platform expansion milestones based on ingested transcript review.',
-          'Mandated all assigned tasks include person designations and spoken audio readout.',
+          `Approved technical and operational roadmap for "${meetingTitle}".`,
+          `Mandated all assigned deliverables for ${primaryTopic} include clear owner designations and audio readouts.`,
+          `Established target milestone deadlines for ${primaryTopic} execution.`,
         ],
         actionItems,
         riskRegister: [
           {
-            risk: 'Integration timeline dependencies',
+            risk: `Resource allocation dependencies for ${primaryTopic}`,
             impact: 'MEDIUM',
-            mitigation: 'Allocate dedicated senior engineering bandwidth.',
+            mitigation: 'Prioritize senior engineering and compliance bandwidth.',
           },
         ],
       };

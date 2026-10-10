@@ -1,31 +1,32 @@
 import { DocumentItem, DocumentComparisonResult } from '@/types/document';
+import { getRelativeTimestamp } from '@/lib/utils';
 
 export const sampleDocuments: DocumentItem[] = [
   {
-    id: 'DOC-2026-MSA-01',
-    name: 'Master Enterprise Cloud Services Agreement 2026.pdf',
+    id: 'DOC-ENG-01',
+    name: 'Master Enterprise Cloud Services & Neural Architecture Agreement 2026.pdf',
     size: '3.4 MB',
     type: 'pdf',
-    uploadedAt: '2026-08-28T14:30:00Z',
-    updatedAt: '2026-09-10T11:00:00Z',
-    vaultId: 'legal',
-    teamId: 'legal_compliance',
-    teamName: 'Legal & Contracts Vault',
-    uploadedBy: 'David Miller',
-    uploadedByEmployeeId: 'EMP-LGL-005',
+    uploadedAt: getRelativeTimestamp(-5),
+    updatedAt: getRelativeTimestamp(-1),
+    vaultId: 'engineering',
+    teamId: 'engineering',
+    teamName: 'Engineering & Neural R&D',
+    uploadedBy: 'Charvi Sharma',
+    uploadedByEmployeeId: 'EMP-ENG-001',
     accessLevel: 'CONFIDENTIAL',
     classification: 'CONFIDENTIAL',
-    securityLevel: 'Level 2 Legal',
+    securityLevel: 'Level 5 Executive',
     status: 'READY',
     pageCount: 24,
     wordCount: 8450,
     sensitivityScore: 82,
-    tags: ['Legal MSA', 'SLA 99.95%', 'Liability Cap', 'Compliance'],
+    tags: ['Legal MSA', 'SLA 99.95%', 'Liability Cap', 'Neural Architecture'],
     summary: 'Comprehensive Master Service Agreement governing enterprise AI SaaS deployment, SLA uptime commitments (99.95%), liability caps ($5M), data sovereignty, and security encryption standards.',
     content: `MASTER ENTERPRISE SERVICES AGREEMENT (2026 REVISION)
 
 SECTION 1: SCOPE OF SERVICES
-Provider agrees to grant Customer a non-exclusive, non-transferable enterprise license to access Synapse AI Intelligence Platform, including AI Workspace, Fraud Analysis Engine, Meeting Intelligence, and Document Intelligence Vaults.
+Provider agrees to grant Customer a non-exclusive, non-transferable enterprise license to access Synapse AI Intelligence Platform, including AI Workspace, Vector Storage Engine, Meeting Intelligence, and Document Intelligence Vaults.
 
 SECTION 4: SERVICE LEVEL AGREEMENT (SLA) & UPTIME
 Provider guarantees a monthly uptime percentage of 99.95%. In the event of an unplanned service interruption exceeding 0.05% in any calendar month, Customer shall receive a service credit equal to 15% of monthly recurring fees.
@@ -61,17 +62,17 @@ All customer data uploaded to Synapse, including transaction logs, meeting audio
     versions: [
       {
         version: '1.2.0',
-        updatedAt: '2026-09-10T11:00:00Z',
-        updatedBy: 'David Miller',
-        updatedByEmployeeId: 'EMP-LGL-005',
+        updatedAt: getRelativeTimestamp(-1),
+        updatedBy: 'Charvi Sharma',
+        updatedByEmployeeId: 'EMP-ENG-001',
         changeNote: 'Updated liability cap from $2M to $5M and added data sovereignty clause.',
         size: '3.4 MB',
       },
       {
         version: '1.0.0',
-        updatedAt: '2026-08-28T14:30:00Z',
-        updatedBy: 'David Miller',
-        updatedByEmployeeId: 'EMP-LGL-005',
+        updatedAt: getRelativeTimestamp(-5),
+        updatedBy: 'Charvi Sharma',
+        updatedByEmployeeId: 'EMP-ENG-001',
         changeNote: 'Initial draft for 2026 enterprise deployment.',
         size: '3.1 MB',
       },
@@ -79,243 +80,100 @@ All customer data uploaded to Synapse, including transaction logs, meeting audio
     accessHistory: [
       {
         id: 'acc-msa-01',
-        employeeId: 'EMP-EXEC-001',
-        employeeName: 'Alex Sterling',
+        employeeId: 'EMP-ENG-001',
+        employeeName: 'Charvi Sharma',
         action: 'VIEW',
-        timestamp: '2026-09-16T16:50:00Z',
+        timestamp: getRelativeTimestamp(0, -1),
         ipAddress: '192.168.1.100',
         status: 'SUCCESS',
       },
       {
         id: 'acc-msa-02',
-        employeeId: 'EMP-LGL-005',
-        employeeName: 'David Miller',
+        employeeId: 'EMP-ENG-002',
+        employeeName: 'Tanisha Gupta',
         action: 'COMPARE',
-        timestamp: '2026-09-15T14:20:00Z',
-        ipAddress: '192.168.1.130',
-        status: 'SUCCESS',
-      },
-    ],
-  },
-  {
-    id: 'DOC-2026-FIN-02',
-    name: 'Q2 2026 Enterprise Financial Performance & Audit Report.pdf',
-    size: '4.8 MB',
-    type: 'pdf',
-    uploadedAt: '2026-08-25T11:15:00Z',
-    updatedAt: '2026-09-02T16:00:00Z',
-    vaultId: 'finance',
-    teamId: 'finance_risk',
-    teamName: 'Finance & Risk Analytics',
-    uploadedBy: 'Sophia Chen',
-    uploadedByEmployeeId: 'EMP-FIN-004',
-    accessLevel: 'TEAM_ONLY',
-    classification: 'CONFIDENTIAL',
-    securityLevel: 'Level 3 Finance',
-    status: 'READY',
-    pageCount: 38,
-    wordCount: 12100,
-    sensitivityScore: 75,
-    tags: ['Financial Audit', 'ARR Growth', 'P&L', 'SEC 10-Q'],
-    summary: 'Executive quarterly financial review detailing 142% YoY ARR expansion, gross profit margin of 84%, operating expenditure breakdown, and risk reserve allocation for fraud prevention tooling.',
-    content: `Q2 2026 FINANCIAL PERFORMANCE & AUDIT REPORT
-
-EXECUTIVE SUMMARY
-Synapse Enterprise achieved record quarterly revenue of $24.8 Million in Q2 2026, representing a 142% Year-over-Year increase. Growth was primarily propelled by enterprise expansion across financial institutions adopting our Fraud Detection Engine.
-
-FINANCIAL HIGHLIGHTS
-- Annual Recurring Revenue (ARR): $92.4M (vs $38.2M Q2 2025)
-- Gross Profit Margin: 84.2%
-- Cloud Infrastructure Operating Cost: $1.42M
-- Net Revenue Retention (NRR): 134%`,
-    keyClauses: [
-      {
-        type: 'financial',
-        title: 'ARR Growth & Gross Margin Breakdown',
-        snippet: 'ARR hit $92.4M with gross margins expanding to 84.2%.',
-        pageOrSection: 'Executive Highlights (page 3)',
-        riskLevel: 'LOW',
-      },
-      {
-        type: 'risk',
-        title: 'Infrastructure Cost vs Revenue Scaling',
-        snippet: 'Cloud Infrastructure cost grew to $1.42M driven by high-throughput RAG document parsing.',
-        pageOrSection: 'Section 3.2 (page 11)',
-        riskLevel: 'MEDIUM',
-      },
-    ],
-    versions: [
-      {
-        version: '1.0.0',
-        updatedAt: '2026-08-25T11:15:00Z',
-        updatedBy: 'Sophia Chen',
-        updatedByEmployeeId: 'EMP-FIN-004',
-        changeNote: 'Quarterly financial close audit report filed with board.',
-        size: '4.8 MB',
-      },
-    ],
-    accessHistory: [
-      {
-        id: 'acc-fin-01',
-        employeeId: 'EMP-FIN-004',
-        employeeName: 'Sophia Chen',
-        action: 'VIEW',
-        timestamp: '2026-09-16T10:15:00Z',
-        ipAddress: '192.168.1.120',
-        status: 'SUCCESS',
-      },
-    ],
-  },
-  {
-    id: 'DOC-2026-EXEC-03',
-    name: 'Board Strategic Capital Allocation & AI Roadmap 2026.pdf',
-    size: '6.2 MB',
-    type: 'pdf',
-    uploadedAt: '2026-09-01T09:00:00Z',
-    updatedAt: '2026-09-12T14:30:00Z',
-    vaultId: 'executive',
-    teamId: 'executive_ops',
-    teamName: 'Executive Leadership Vault',
-    uploadedBy: 'Alex Sterling',
-    uploadedByEmployeeId: 'EMP-EXEC-001',
-    accessLevel: 'RESTRICTED',
-    classification: 'TOP SECRET',
-    securityLevel: 'Level 5 Executive',
-    status: 'READY',
-    pageCount: 45,
-    wordCount: 16500,
-    sensitivityScore: 98,
-    tags: ['Board Governance', 'M&A Pipeline', 'Capital Budget', 'Neural R&D'],
-    summary: 'Restricted executive strategy paper outlining $45M Series C expansion, European banking compliance framework, and GPU cluster infrastructure provisioning.',
-    content: `BOARD OF DIRECTORS EXECUTIVE MEMORANDUM
-CONFIDENTIALITY LEVEL: TOP SECRET / STRICTLY COMPARTMENTED
-
-1. STRATEGIC CAPITAL ALLOCATION
-The board has approved the allocation of $45,000,000 across 3 primary strategic vectors:
-- 40% ($18M) to Distributed Neural H100 Cluster Procurement
-- 35% ($15.75M) to Global Sales Expansion across EMEA and APAC
-- 25% ($11.25M) to Fraud Defense & Sovereign Data Residency Infrastructure.`,
-    keyClauses: [
-      {
-        type: 'financial',
-        title: 'Strategic Capital Expenditure Commitment',
-        snippet: '$45,000,000 allocated for GPU clusters, sales expansion, and sovereign vaults.',
-        pageOrSection: 'Section 1.1',
-        riskLevel: 'LOW',
-      },
-      {
-        type: 'liability',
-        title: 'Executive Non-Disclosure & Regulatory Compliance',
-        snippet: 'Restricted under Section 16 SEC governance rules. Unauthorized disclosure triggers immediate termination.',
-        pageOrSection: 'Section 6.3',
-        riskLevel: 'HIGH',
-      },
-    ],
-    versions: [
-      {
-        version: '1.1.0',
-        updatedAt: '2026-09-12T14:30:00Z',
-        updatedBy: 'Alex Sterling',
-        updatedByEmployeeId: 'EMP-EXEC-001',
-        changeNote: 'Incorporated EMEA banking compliance additions.',
-        size: '6.2 MB',
-      },
-    ],
-    accessHistory: [
-      {
-        id: 'acc-exec-01',
-        employeeId: 'EMP-EXEC-001',
-        employeeName: 'Alex Sterling',
-        action: 'VIEW',
-        timestamp: '2026-09-16T08:45:00Z',
-        ipAddress: '192.168.1.100',
-        status: 'SUCCESS',
-      },
-      {
-        id: 'acc-exec-02',
-        employeeId: 'EMP-ENG-006',
-        employeeName: 'Sarah Connor',
-        action: 'VIEW',
-        timestamp: '2026-09-16T11:15:00Z',
-        ipAddress: '192.168.1.140',
-        status: 'DENIED',
-      },
-    ],
-  },
-  {
-    id: 'DOC-2026-SEC-04',
-    name: 'Cyber Threat Intelligence & AML Screening Guidelines.pdf',
-    size: '2.9 MB',
-    type: 'pdf',
-    uploadedAt: '2026-09-05T13:20:00Z',
-    updatedAt: '2026-09-14T10:00:00Z',
-    vaultId: 'cyber',
-    teamId: 'fraud_security',
-    teamName: 'Cyber & Fraud Ops Vault',
-    uploadedBy: 'Elena Rostova',
-    uploadedByEmployeeId: 'EMP-SEC-002',
-    accessLevel: 'RESTRICTED',
-    classification: 'TOP SECRET',
-    securityLevel: 'Level 4 Cyber',
-    status: 'READY',
-    pageCount: 18,
-    wordCount: 6200,
-    sensitivityScore: 92,
-    tags: ['AML Thresholds', 'SWIFT Forensics', 'Sanctions Screening', 'Velocity Rules'],
-    summary: 'Standard Operating Procedure for high-velocity transaction auditing, automated sanction list cross-checks, and account freeze criteria.',
-    content: `CYBER & FRAUD FORENSICS STANDARD OPERATING PROCEDURE
-
-RULE 1: VELOCITY ANOMALY THRESHOLDS
-Any account originating transfers exceeding 300% of historical 30-day velocity shall be placed into automated quarantine pending manual inspection.
-
-RULE 2: WIRE AMOUNT THRESHOLD
-Transactions exceeding $500,000 USD require dual Level 4 Security Analyst sign-off and cross-verification against verified Master Invoices.`,
-    keyClauses: [
-      {
-        type: 'obligation',
-        title: 'Mandatory Dual-Signoff on Wires > $500,000',
-        snippet: 'Transactions exceeding $500,000 USD require dual Level 4 Analyst approval.',
-        pageOrSection: 'Rule 2.1',
-        riskLevel: 'HIGH',
-      },
-    ],
-    versions: [
-      {
-        version: '1.0.0',
-        updatedAt: '2026-09-05T13:20:00Z',
-        updatedBy: 'Elena Rostova',
-        updatedByEmployeeId: 'EMP-SEC-002',
-        changeNote: 'Baseline AML procedure approved by CTO and Legal.',
-        size: '2.9 MB',
-      },
-    ],
-    accessHistory: [
-      {
-        id: 'acc-sec-01',
-        employeeId: 'EMP-SEC-002',
-        employeeName: 'Elena Rostova',
-        action: 'VIEW',
-        timestamp: '2026-09-16T09:20:00Z',
+        timestamp: getRelativeTimestamp(0, -3),
         ipAddress: '192.168.1.104',
         status: 'SUCCESS',
       },
     ],
   },
   {
-    id: 'DOC-2026-ENG-05',
+    id: 'DOC-ENG-02',
+    name: 'Q2 2026 Infrastructure Scaling & AI Neural Pipeline Report.pdf',
+    size: '4.8 MB',
+    type: 'pdf',
+    uploadedAt: getRelativeTimestamp(-10),
+    updatedAt: getRelativeTimestamp(-3),
+    vaultId: 'engineering',
+    teamId: 'engineering',
+    teamName: 'Engineering & Neural R&D',
+    uploadedBy: 'Tanisha Gupta',
+    uploadedByEmployeeId: 'EMP-ENG-002',
+    accessLevel: 'TEAM_ONLY',
+    classification: 'CONFIDENTIAL',
+    securityLevel: 'Level 4 Cyber',
+    status: 'READY',
+    pageCount: 38,
+    wordCount: 12100,
+    sensitivityScore: 75,
+    tags: ['Backend Scaling', 'Vector Search', 'RAG Pipeline', 'GPU Cluster'],
+    summary: 'Engineering quarterly review detailing vector search index expansion, sub-300ms multi-document retrieval latency, and cloud cluster capacity scaling.',
+    content: `Q2 ENGINEERING INFRASTRUCTURE & NEURAL PIPELINE REPORT
+
+EXECUTIVE SUMMARY
+Synapse Enterprise achieved 99.98% pipeline uptime in Q2 with vector search capacity growing to 88% peak load.
+
+INFRASTRUCTURE HIGHLIGHTS
+- Multi-Document Vector Queries: 14.2M processed
+- Mean RAG Retrieval Latency: 240ms
+- Distributed GPU Inference Nodes: 16 H100 Cluster Worker Nodes`,
+    keyClauses: [
+      {
+        type: 'financial',
+        title: 'Cluster Compute Expansion & Vector Scaling',
+        snippet: 'Vector queries reached 14.2M with 84% search accuracy.',
+        pageOrSection: 'Executive Highlights (page 3)',
+        riskLevel: 'LOW',
+      },
+    ],
+    versions: [
+      {
+        version: '1.0.0',
+        updatedAt: getRelativeTimestamp(-10),
+        updatedBy: 'Tanisha Gupta',
+        updatedByEmployeeId: 'EMP-ENG-002',
+        changeNote: 'Quarterly infrastructure review filed.',
+        size: '4.8 MB',
+      },
+    ],
+    accessHistory: [
+      {
+        id: 'acc-fin-01',
+        employeeId: 'EMP-ENG-002',
+        employeeName: 'Tanisha Gupta',
+        action: 'VIEW',
+        timestamp: getRelativeTimestamp(0, -2),
+        ipAddress: '192.168.1.104',
+        status: 'SUCCESS',
+      },
+    ],
+  },
+  {
+    id: 'DOC-ENG-03',
     name: 'Neural Model Architecture & Vector Indexing RFC.pdf',
     size: '5.1 MB',
     type: 'pdf',
-    uploadedAt: '2026-09-08T15:40:00Z',
-    updatedAt: '2026-09-15T09:30:00Z',
+    uploadedAt: getRelativeTimestamp(-6),
+    updatedAt: getRelativeTimestamp(-2),
     vaultId: 'engineering',
     teamId: 'engineering',
-    teamName: 'Engineering Vault',
-    uploadedBy: 'Marcus Vance',
+    teamName: 'Engineering & Neural R&D',
+    uploadedBy: 'Anshika Verma',
     uploadedByEmployeeId: 'EMP-ENG-003',
     accessLevel: 'TEAM_ONLY',
     classification: 'INTERNAL RESTRICTED',
-    securityLevel: 'Level 1 Standard',
+    securityLevel: 'Level 4 Cyber',
     status: 'READY',
     pageCount: 32,
     wordCount: 9800,
@@ -338,8 +196,8 @@ The vector store utilizes hierarchical navigable small world graphs partitioned 
     versions: [
       {
         version: '1.0.0',
-        updatedAt: '2026-09-08T15:40:00Z',
-        updatedBy: 'Marcus Vance',
+        updatedAt: getRelativeTimestamp(-6),
+        updatedBy: 'Anshika Verma',
         updatedByEmployeeId: 'EMP-ENG-003',
         changeNote: 'Initial RFC proposal.',
         size: '5.1 MB',
@@ -349,10 +207,58 @@ The vector store utilizes hierarchical navigable small world graphs partitioned 
       {
         id: 'acc-eng-01',
         employeeId: 'EMP-ENG-003',
-        employeeName: 'Marcus Vance',
+        employeeName: 'Anshika Verma',
         action: 'VIEW',
-        timestamp: '2026-09-16T09:50:00Z',
+        timestamp: getRelativeTimestamp(0, -4),
         ipAddress: '192.168.1.112',
+        status: 'SUCCESS',
+      },
+    ],
+  },
+  {
+    id: 'DOC-ENG-04',
+    name: 'Frontend Design System & Component Library Specs.pdf',
+    size: '3.1 MB',
+    type: 'pdf',
+    uploadedAt: getRelativeTimestamp(-4),
+    updatedAt: getRelativeTimestamp(-1),
+    vaultId: 'engineering',
+    teamId: 'engineering',
+    teamName: 'Engineering & Neural R&D',
+    uploadedBy: 'Bhavya Malhotra',
+    uploadedByEmployeeId: 'EMP-ENG-004',
+    accessLevel: 'TEAM_ONLY',
+    classification: 'CONFIDENTIAL',
+    securityLevel: 'Level 3 Finance',
+    status: 'READY',
+    pageCount: 22,
+    wordCount: 5400,
+    sensitivityScore: 40,
+    tags: ['UX Specifications', 'Design System', 'Tailwind Utilities', 'Micro-Animations'],
+    summary: 'Design system specification detailing Synapse Enterprise UI design tokens, dark/light mode standards, accessible color contrast rules, and modal dialog behavior.',
+    content: `SYNAPSE ENTERPRISE FRONTEND DESIGN SYSTEM
+
+1. VISUAL ESTHETICS & ACCESSIBILITY
+All interface components enforce slate-50 light enterprise themes, high contrast text hierarchy, and accessible ARIA attributes across desktop and mobile screens.`,
+    keyClauses: [],
+    versions: [
+      {
+        version: '1.0.0',
+        updatedAt: getRelativeTimestamp(-4),
+        updatedBy: 'Bhavya Malhotra',
+        updatedByEmployeeId: 'EMP-ENG-004',
+        changeNote: 'Design tokens published.',
+        size: '3.1 MB',
+      },
+    ],
+    accessHistory: [
+      {
+        id: 'acc-fe-01',
+        employeeId: 'EMP-ENG-004',
+        employeeName: 'Bhavya Malhotra',
+        action: 'VIEW',
+        timestamp: getRelativeTimestamp(0, -1),
+        ipAddress: '192.168.1.108',
         status: 'SUCCESS',
       },
     ],
@@ -360,64 +266,61 @@ The vector store utilizes hierarchical navigable small world graphs partitioned 
 ];
 
 export const sampleDocComparison: DocumentComparisonResult = {
-  doc1Name: 'Master Enterprise Cloud Services Agreement 2025 (v1.0)',
-  doc2Name: 'Master Enterprise Cloud Services Agreement 2026 (v2.0)',
+  doc1Name: sampleDocuments[0].name,
+  doc2Name: sampleDocuments[1].name,
   similarityScore: 84,
-  financialVariance: 'Liability Cap increased from $2,000,000 USD to $5,000,000 USD (+150%). Service credit ceiling increased from 10% to 15%.',
-  riskVariance: 'Overall contractual risk lowered from HIGH to LOW due to explicit zero-AI-model training warranties and sovereign encryption guarantees.',
   keyDifferences: [
     {
-      section: 'Section 4: Uptime SLA & Service Credits',
-      doc1Text: 'Guarantees 99.9% uptime with 10% maximum monthly fee credit.',
-      doc2Text: 'Guarantees 99.95% uptime with 15% maximum monthly fee credit.',
+      section: 'SLA Credit Penalty',
+      doc1Text: '15% SLA service credit penalty for downtime exceeding 0.05%.',
+      doc2Text: '10% SLA service credit penalty.',
       impact: 'MODERATE',
-      explanation: 'Uptime threshold tightened by 0.05% with increased financial penalty on downtime.',
+      explanation: 'Document 1 provides higher downtime reimbursement for enterprise customers.',
     },
     {
-      section: 'Section 8: Cumulative Limitation of Liability',
-      doc1Text: 'Cumulative aggregate liability capped at $2,000,000 USD.',
-      doc2Text: 'Cumulative aggregate liability capped at $5,000,000 USD or 12 months fees.',
+      section: 'Limitation of Liability',
+      doc1Text: 'Mutual liability cap at $5,000,000 USD.',
+      doc2Text: 'Mutual liability cap at $2,000,000 USD.',
       impact: 'CRITICAL',
-      explanation: 'Major expansion in liability coverage for enterprise data loss or breach events.',
-    },
-    {
-      section: 'Section 12: AI Data Sovereignty & Foundation Training',
-      doc1Text: 'Provider may use anonymized metadata to improve platform heuristics.',
-      doc2Text: 'Zero customer data or metadata shall be utilized for AI training without explicit consent.',
-      impact: 'CRITICAL',
-      explanation: 'Strict zero-training warranty protects proprietary enterprise intelligence.',
+      explanation: 'Document 1 increases cumulative liability threshold by $3M USD.',
     },
   ],
+  financialVariance: '+$3,000,000 USD liability limit increase in Document 1.',
+  riskVariance: 'Low risk variance. Both documents comply with SOC2 Type II.',
   recommendations: [
-    'Approve v2.0 revision as liability cap expansion aligns with enterprise risk policy.',
-    'Confirm that 99.95% uptime SLA is mirrored in downstream cloud provider contracts.',
-    'Log new agreement hash to immutable compliance audit trail.',
+    'Align liability cap to $5M across all engineering partner contracts.',
+    'Confirm 99.95% SLA commitment with cloud infrastructure providers.',
   ],
 };
 
-// Storage helper functions
+const STORAGE_KEY = 'synapse_documents_db_v4';
+
 export function getStoredDocuments(): DocumentItem[] {
   if (typeof window === 'undefined') return sampleDocuments;
   try {
-    const data = localStorage.getItem('synapse_documents_db_v2');
-    if (data) {
-      const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleDocuments));
+      return sampleDocuments;
     }
-    localStorage.setItem('synapse_documents_db_v2', JSON.stringify(sampleDocuments));
-  } catch (err) {}
-  return sampleDocuments;
+    return JSON.parse(raw);
+  } catch (e) {
+    return sampleDocuments;
+  }
 }
 
 export function saveStoredDocuments(docs: DocumentItem[]): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem('synapse_documents_db_v2', JSON.stringify(docs));
-  } catch (err) {}
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(docs));
+  } catch (e) {
+    console.error('Failed to save stored documents:', e);
+  }
 }
 
-export function addNewStoredDocument(doc: DocumentItem): void {
-  const existing = getStoredDocuments();
-  const updated = [doc, ...existing.filter((d) => d.id !== doc.id)];
+export function addNewStoredDocument(doc: DocumentItem): DocumentItem[] {
+  const current = getStoredDocuments();
+  const updated = [doc, ...current];
   saveStoredDocuments(updated);
+  return updated;
 }

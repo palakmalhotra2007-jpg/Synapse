@@ -6,28 +6,23 @@ import { AuthPortal } from './AuthPortal';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Navbar } from '@/components/layout/Navbar';
 import { Loader2 } from 'lucide-react';
-import { LiveCharacter } from '@/components/character/LiveCharacter';
 import { UnifiedAIChatModal } from '@/components/workspace/UnifiedAIChatModal';
+import { LiveCharacter } from '@/components/character/LiveCharacter';
 
 export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-  const [mounted, setMounted] = React.useState(false);
+  const { user, loading } = useAuth();
   const [isAILLMOpen, setIsAILLMOpen] = useState(false);
   const [aiLLMInitialMode, setAiLLMInitialMode] = useState<'chat' | 'image_search' | 'chart_understanding' | 'duplicate_detection'>('chat');
 
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Show brief dark loading screen only during initial client hydration
-  if (!mounted) {
+  // Show minimal clean loading screen while restoring auth state
+  if (loading) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#050811] text-white gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-          <Loader2 className="w-6 h-6 animate-spin" />
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 text-slate-800 gap-4">
+        <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 shadow-xs">
+          <Loader2 className="w-5 h-5 animate-spin text-sky-600" />
         </div>
-        <p className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
-          Initializing Synapse Neural Engine & Session Verification...
+        <p className="text-xs font-semibold text-slate-500 tracking-wide">
+          Loading Workspace...
         </p>
       </div>
     );
@@ -39,16 +34,16 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
   }
 
   return (
-    <div className="relative z-10 flex min-h-screen w-full">
+    <div className="relative z-10 flex min-h-screen w-full bg-slate-50 text-slate-900">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />
-        <main className="flex-1 overflow-y-auto custom-scrollbar">
+        <main className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
           {children}
         </main>
       </div>
 
-      {/* Global Live Anime Speaking AI Character Companion */}
+      {/* Persistent Live AI Character */}
       <LiveCharacter
         mode="floating"
         onOpenAILLM={(mode) => {
@@ -57,7 +52,7 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
         }}
       />
 
-      {/* Unified AI LLM, Document RAG & Vision Modal */}
+      {/* Unified AI Assistant Modal */}
       <UnifiedAIChatModal
         isOpen={isAILLMOpen}
         onClose={() => setIsAILLMOpen(false)}
@@ -66,5 +61,3 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     </div>
   );
 };
-
-

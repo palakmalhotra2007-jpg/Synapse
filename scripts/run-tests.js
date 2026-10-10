@@ -48,11 +48,11 @@ async function main() {
   
   const INITIAL_USERS = [
     {
-      uid: 'usr-exec-001',
-      displayName: 'Alex Sterling',
-      email: 'alex.sterling@synapse-ai.io',
+      uid: 'usr-eng-001',
+      displayName: 'Charvi Sharma',
+      email: 'charvi@synapse-ai.io',
       passwordHash: 'Synapse#2026',
-      role: 'Chief Technology Officer',
+      role: 'Engineering Lead & Principal AI Architect',
       tokenBalance: 850000,
       status: 'ACTIVE',
     },
@@ -83,11 +83,11 @@ async function main() {
     return { success: true, user: u };
   }
 
-  runTest('Authenticate valid persona: Alex Sterling (CTO)', () => {
-    const res = verify('alex.sterling@synapse-ai.io', 'Synapse#2026');
+  runTest('Authenticate valid persona: Charvi Sharma (Engineering Lead)', () => {
+    const res = verify('charvi@synapse-ai.io', 'Synapse#2026');
     assert.strictEqual(res.success, true);
-    assert.strictEqual(res.user.displayName, 'Alex Sterling');
-    assert.strictEqual(res.user.role, 'Chief Technology Officer');
+    assert.strictEqual(res.user.displayName, 'Charvi Sharma');
+    assert.strictEqual(res.user.role, 'Engineering Lead & Principal AI Architect');
   });
 
   runTest('Authenticate valid persona: Elena Rostova (CFO)', () => {
@@ -97,7 +97,7 @@ async function main() {
   });
 
   runTest('Reject invalid password with explicit error feedback', () => {
-    const res = verify('alex.sterling@synapse-ai.io', 'WrongPassword123');
+    const res = verify('charvi@synapse-ai.io', 'WrongPassword123');
     assert.strictEqual(res.success, false);
     assert(res.error.includes('Invalid password'));
   });

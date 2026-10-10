@@ -4,39 +4,88 @@ import React, { useState, useEffect } from 'react';
 import {
   Users,
   Search,
-  Filter,
-  Shield,
-  ShieldCheck,
-  KeyRound,
-  Mail,
-  Phone,
-  Building,
   ChevronRight,
+  Plus,
   UserPlus,
-  Laptop,
+  FolderPlus,
+  Shield,
+  Building,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { UserProfile, TeamId, UserRbacRole } from '@/types/dashboard';
-import { getStoredUsers, TEAMS_LIST } from '@/lib/auth/usersDb';
+import { Modal } from '@/components/ui/Modal';
+import { UserProfile, Team } from '@/types/dashboard';
+import { getStoredUsers, getStoredTeams, createNewTeam, registerNewUser } from '@/lib/auth/usersDb';
 import { EmployeeProfileDrawer } from '@/components/employees/EmployeeProfileDrawer';
 import { useAuth } from '@/lib/firebase/authContext';
 
 export default function EmployeeDirectoryPage() {
   const { user } = useAuth();
   const [employees, setEmployees] = useState<UserProfile[]>([]);
+  const [teamsList, setTeamsList] = useState<Team[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('ALL');
-  const [selectedRole, setSelectedRole] = useState<string>('ALL');
-  const [selectedClearance, setSelectedClearance] = useState<string>('ALL');
   const [selectedEmployee, setSelectedEmployee] = useState<UserProfile | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // Create Team Modal state
+  const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamCode, setNewTeamCode] = useState('');
+  const [newTeamDesc, setNewTeamDesc] = useState('');
+  const [newTeamBadge, setNewTeamBadge] = useState<'cyan' | 'rose' | 'amber' | 'purple' | 'emerald' | 'indigo'>('cyan');
+
+  // Add Member Modal state
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState('Senior Systems Specialist');
+  const [newMemberTeamId, setNewMemberTeamId] = useState<string>('engineering');
+
   useEffect(() => {
-    const users = getStoredUsers();
-    setEmployees(users);
+    setEmployees(getStoredUsers());
+    setTeamsList(getStoredTeams());
   }, []);
+
+  const handleCreateTeamSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTeamName.trim()) return;
+
+    const created = createNewTeam({
+      name: newTeamName,
+      code: newTeamCode || 'TEAM',
+      description: newTeamDesc || 'Enterprise operations team vault.',
+      lead: user?.displayName || 'Charvi Sharma',
+      badgeVariant: newTeamBadge,
+    });
+
+    setTeamsList(getStoredTeams());
+    setIsCreateTeamOpen(false);
+    setNewTeamName('');
+    setNewTeamCode('');
+    setNewTeamDesc('');
+  };
+
+  const handleAddMemberSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMemberName.trim() || !newMemberEmail.trim()) return;
+
+    const result = registerNewUser(
+      newMemberName,
+      newMemberEmail,
+      'Synapse#2026',
+      newMemberTeamId as any,
+      newMemberRole
+    );
+
+    if (result.success) {
+      setEmployees(getStoredUsers());
+      setIsAddMemberOpen(false);
+      setNewMemberName('');
+      setNewMemberEmail('');
+    }
+  };
 
   const filteredEmployees = employees.filter((emp) => {
     const matchesSearch =
@@ -48,98 +97,46 @@ export default function EmployeeDirectoryPage() {
       emp.department.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesDept = selectedDepartment === 'ALL' || emp.teamId === selectedDepartment;
-    const matchesRole = selectedRole === 'ALL' || emp.rbacRole === selectedRole;
-    const matchesClearance = selectedClearance === 'ALL' || emp.securityClearance === selectedClearance;
 
-    return matchesSearch && matchesDept && matchesRole && matchesClearance;
+    return matchesSearch && matchesDept;
   });
 
-  const totalPasskeys = employees.reduce((acc, e) => acc + (e.passkeys?.length || 0), 0);
-  const totalSessions = employees.reduce((acc, e) => acc + (e.activeSessions?.length || 0), 0);
-
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-full text-slate-100">
+    <div className="p-4 sm:p-6 space-y-6 max-w-full text-slate-800 text-left bg-slate-50 min-h-screen">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-sky-600 uppercase tracking-wider mb-1">
             <Users className="w-4 h-4" />
-            <span>Personnel & Access Governance Matrix</span>
+            <span>Organization Directory</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Employee Directory & Identity Profiles
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            People & Team Directory
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Manage personnel credentials, RBAC clearance tiers, hardware passkeys, and active sessions.
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Create enterprise teams, assign members, and manage personnel directories.
           </p>
         </div>
-      </div>
 
-      {/* Overview Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Total Personnel</span>
-            <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-white">{employees.length}</span>
-            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">
-              100% Active
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-400">Verified corporate specialists</p>
-        </Card>
+        <div className="flex items-center gap-2.5">
+          <Button
+            onClick={() => setIsCreateTeamOpen(true)}
+            variant="outline"
+            size="sm"
+            leftIcon={<FolderPlus className="w-4 h-4 text-purple-600" />}
+          >
+            Create New Team
+          </Button>
 
-        <Card className="p-4 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Hardware Passkeys</span>
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
-              <KeyRound className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-white">{totalPasskeys}</span>
-            <span className="text-[10px] text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded-full">
-              FIDO2 / WebAuthn
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-400">Enrolled platform authenticators</p>
-        </Card>
-
-        <Card className="p-4 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Active Workstations</span>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
-              <Laptop className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-white">{totalSessions}</span>
-            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">
-              Live Sessions
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-400">Encrypted AES-256 tokens</p>
-        </Card>
-
-        <Card className="p-4 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Clearance Governance</span>
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-white">5 Tiers</span>
-            <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full">
-              SOC2 Type II
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-400">RBAC vault segregation active</p>
-        </Card>
+          <Button
+            onClick={() => setIsAddMemberOpen(true)}
+            variant="primary"
+            size="sm"
+            leftIcon={<UserPlus className="w-4 h-4" />}
+          >
+            Add Team Member
+          </Button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -147,13 +144,13 @@ export default function EmployeeDirectoryPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Search Input */}
           <div className="relative flex-1 min-w-[240px]">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, employee ID, email, role, or department..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-synapse-cyan/50"
+              placeholder="Search by name, ID, role, or department..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500"
             />
           </div>
 
@@ -162,42 +159,12 @@ export default function EmployeeDirectoryPage() {
             <select
               value={selectedDepartment}
               onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
             >
-              <option value="ALL">All Departments</option>
-              {TEAMS_LIST.map((t) => (
+              <option value="ALL">All Departments & Teams</option>
+              {teamsList.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
-            </select>
-
-            {/* Role Filter */}
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
-            >
-              <option value="ALL">All RBAC Roles</option>
-              <option value="Administrator">Administrator</option>
-              <option value="Executive">Executive</option>
-              <option value="Security Analyst">Security Analyst</option>
-              <option value="Finance">Finance</option>
-              <option value="Legal">Legal</option>
-              <option value="Manager">Manager</option>
-              <option value="Employee">Employee</option>
-            </select>
-
-            {/* Clearance Filter */}
-            <select
-              value={selectedClearance}
-              onChange={(e) => setSelectedClearance(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-synapse-cyan/50"
-            >
-              <option value="ALL">All Clearance Tiers</option>
-              <option value="Level 5 Executive">Level 5 Executive</option>
-              <option value="Level 4 Cyber Forensics">Level 4 Cyber Forensics</option>
-              <option value="Level 3 Financial Risk">Level 3 Financial Risk</option>
-              <option value="Level 2 Legal Compliance">Level 2 Legal Compliance</option>
-              <option value="Level 1 General">Level 1 General</option>
             </select>
           </div>
         </div>
@@ -214,68 +181,184 @@ export default function EmployeeDirectoryPage() {
                 setSelectedEmployee(emp);
                 setIsDrawerOpen(true);
               }}
-              className={`p-5 rounded-2xl border transition-all cursor-pointer space-y-4 group relative ${
+              className={`p-5 rounded-2xl border transition-all cursor-pointer space-y-4 group relative bg-white border-slate-200/80 shadow-2xs ${
                 isSelf
-                  ? 'bg-slate-900/90 border-synapse-cyan/40 shadow-[0_0_15px_rgba(0,242,254,0.1)]'
-                  : 'bg-slate-900/70 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
+                  ? 'border-sky-300 ring-2 ring-sky-500/20'
+                  : 'hover:border-sky-200 hover:shadow-xs'
               }`}
             >
               {/* Top Row: Avatar, Name, Employee ID */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <img
-                    src={emp.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                    alt={emp.displayName}
-                    className="w-12 h-12 rounded-xl object-cover border border-slate-700 shadow-md shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-white group-hover:text-synapse-cyan transition-colors truncate">
-                        {emp.displayName}
-                      </h3>
-                      {isSelf && (
-                        <Badge variant="cyan" size="sm">You</Badge>
-                      )}
-                    </div>
-                    <span className="text-[11px] text-cyan-400 font-mono font-bold">
-                      {emp.employeeId}
-                    </span>
-                  </div>
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-600 to-blue-700 text-white flex items-center justify-center font-bold text-sm shadow-2xs shrink-0">
+                  {emp.displayName ? emp.displayName.split(' ').map(n => n[0]).join('').substring(0, 2) : 'EM'}
                 </div>
-
-                <Badge variant={emp.rbacRole === 'Administrator' ? 'emerald' : emp.rbacRole === 'Security Analyst' ? 'rose' : 'purple'} size="sm">
-                  {emp.rbacRole}
-                </Badge>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors truncate">
+                      {emp.displayName}
+                    </h3>
+                    {isSelf && (
+                      <Badge variant="cyan" size="sm">You</Badge>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-sky-700 font-mono font-bold block mt-0.5">
+                    {emp.employeeId}
+                  </span>
+                </div>
               </div>
 
               {/* Middle Section: Designation & Department */}
-              <div className="space-y-1 text-xs">
-                <p className="font-semibold text-slate-200 truncate">{emp.role}</p>
-                <p className="text-[11px] text-slate-400 truncate">{emp.department}</p>
+              <div className="space-y-1 text-xs pt-1 border-t border-slate-100">
+                <p className="font-semibold text-slate-800 truncate">{emp.role}</p>
+                <p className="text-[11px] text-slate-500 truncate">{emp.department || emp.teamName}</p>
               </div>
 
-              {/* Metadata Badges Row */}
-              <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                <span className="text-slate-400 flex items-center gap-1 font-mono">
-                  <Shield className="w-3.5 h-3.5 text-synapse-cyan" />
-                  <span>{emp.securityClearance.split(' ')[0]} {emp.securityClearance.split(' ')[1]}</span>
+              {/* Action Row */}
+              <div className="pt-2 flex items-center justify-between text-[11px] text-slate-500">
+                <span className="truncate">{emp.email}</span>
+                <span className="text-sky-600 font-semibold group-hover:underline flex items-center gap-0.5 shrink-0">
+                  <span>Details</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </span>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <KeyRound className="w-3 h-3 text-purple-400" />
-                    <span>{emp.passkeys?.length || 0} PK</span>
-                  </span>
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <Laptop className="w-3 h-3 text-emerald-400" />
-                    <span>{emp.activeSessions?.length || 0} Sess</span>
-                  </span>
-                </div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Modal 1: Create New Team */}
+      <Modal isOpen={isCreateTeamOpen} onClose={() => setIsCreateTeamOpen(false)} title="Provision New Enterprise Team" maxWidth="md">
+        <form onSubmit={handleCreateTeamSubmit} className="space-y-4 text-left">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700">Team Name</label>
+            <input
+              type="text"
+              required
+              value={newTeamName}
+              onChange={(e) => setNewTeamName(e.target.value)}
+              placeholder="e.g. AI Research & Neural Infrastructure"
+              className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700">Team Code</label>
+              <input
+                type="text"
+                required
+                value={newTeamCode}
+                onChange={(e) => setNewTeamCode(e.target.value)}
+                placeholder="e.g. AI-RND"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-mono focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700">Badge Theme</label>
+              <select
+                value={newTeamBadge}
+                onChange={(e) => setNewTeamBadge(e.target.value as any)}
+                className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
+              >
+                <option value="cyan">Cyan (Neural)</option>
+                <option value="purple">Purple (AI/R&D)</option>
+                <option value="emerald">Emerald (Executive)</option>
+                <option value="rose">Rose (Cyber Security)</option>
+                <option value="amber">Amber (Finance)</option>
+                <option value="indigo">Indigo (Platform)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700">Team Description</label>
+            <textarea
+              rows={2}
+              value={newTeamDesc}
+              onChange={(e) => setNewTeamDesc(e.target.value)}
+              placeholder="Brief description of team responsibilities and vault clearances..."
+              className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
+            <Button variant="secondary" size="sm" type="button" onClick={() => setIsCreateTeamOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" type="submit">
+              Provision Team
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal 2: Add Team Member */}
+      <Modal isOpen={isAddMemberOpen} onClose={() => setIsAddMemberOpen(false)} title="Add Team Member to Organization" maxWidth="md">
+        <form onSubmit={handleAddMemberSubmit} className="space-y-4 text-left">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700">Full Name</label>
+            <input
+              type="text"
+              required
+              value={newMemberName}
+              onChange={(e) => setNewMemberName(e.target.value)}
+              placeholder="e.g. Ananya Sharma"
+              className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700">Enterprise Email</label>
+            <input
+              type="email"
+              required
+              value={newMemberEmail}
+              onChange={(e) => setNewMemberEmail(e.target.value)}
+              placeholder="e.g. ananya@synapse-ai.io"
+              className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700">Designation / Role</label>
+              <input
+                type="text"
+                required
+                value={newMemberRole}
+                onChange={(e) => setNewMemberRole(e.target.value)}
+                placeholder="e.g. Senior Frontend Engineer"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700">Assign Team</label>
+              <select
+                value={newMemberTeamId}
+                onChange={(e) => setNewMemberTeamId(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
+              >
+                {teamsList.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
+            <Button variant="secondary" size="sm" type="button" onClick={() => setIsAddMemberOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" type="submit">
+              Add Member
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Employee Profile Drawer */}
       <EmployeeProfileDrawer
