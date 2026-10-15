@@ -44,6 +44,8 @@ export async function POST(req: Request) {
 
       // 2. Fetch YouTube HTML page to extract detailed videoDetails and captions
       let rawCaptionsText = '';
+      let timedCaptions: Array<{ startSec: number; startTime: string; text: string }> = [];
+
       try {
         const pageRes = await fetch(`https://www.youtube.com/watch?v=${ytId}`, {
           headers: {
@@ -69,30 +71,59 @@ export async function POST(req: Request) {
               if (captionTracks.length > 0) {
                 const englishTrack = captionTracks.find((t: any) => t.languageCode === 'en' || t.vssId?.includes('en')) || captionTracks[0];
                 if (englishTrack && englishTrack.baseUrl) {
-                  const xmlRes = await fetch(englishTrack.baseUrl, {
-                    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-                  });
-                  if (xmlRes.ok) {
-                    const xmlText = await xmlRes.text();
-                    const textRegex = /<text start="([\d\.]+)"[^>]*>([^<]+)<\/text>/g;
-                    let m;
-                    const lines: Array<{ start: number; text: string }> = [];
-                    while ((m = textRegex.exec(xmlText)) !== null) {
-                      const startSec = parseFloat(m[1]);
-                      const textContent = m[2]
-                        .replace(/&amp;/g, '&')
-                        .replace(/&lt;/g, '<')
-                        .replace(/&gt;/g, '>')
-                        .replace(/&quot;/g, '"')
-                        .replace(/&#39;/g, "'")
-                        .trim();
-                      if (textContent) {
-                        lines.push({ start: startSec, text: textContent });
+                  // Try JSON3 format first
+                  const jsonUrl = englishTrack.baseUrl.includes('fmt=') ? englishTrack.baseUrl : `${englishTrack.baseUrl}&fmt=json3`;
+                  try {
+                    const capRes = await fetch(jsonUrl, {
+                      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+                    });
+                    if (capRes.ok) {
+                      const capData = await capRes.json().catch(() => null);
+                      if (capData && capData.events) {
+                        for (const ev of capData.events) {
+                          if (ev.segs && ev.segs.length > 0) {
+                            const segText = ev.segs.map((s: any) => s.utf8 || '').join('').replace(/\n/g, ' ').trim();
+                            if (segText && segText !== '\n') {
+                              const startSec = Math.floor((ev.tStartMs || 0) / 1000);
+                              const min = String(Math.floor(startSec / 60)).padStart(2, '0');
+                              const sec = String(startSec % 60).padStart(2, '0');
+                              timedCaptions.push({ startSec, startTime: `${min}:${sec}`, text: segText });
+                            }
+                          }
+                        }
                       }
                     }
-                    if (lines.length > 0) {
-                      rawCaptionsText = lines.map((l) => l.text).join(' ');
+                  } catch (e) {}
+
+                  // Fallback to XML parsing if JSON3 yielded no lines
+                  if (timedCaptions.length === 0) {
+                    const xmlRes = await fetch(englishTrack.baseUrl, {
+                      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+                    });
+                    if (xmlRes.ok) {
+                      const xmlText = await xmlRes.text();
+                      const textRegex = /<text start="([\d\.]+)"[^>]*>([^<]+)<\/text>/g;
+                      let m;
+                      while ((m = textRegex.exec(xmlText)) !== null) {
+                        const startSec = Math.floor(parseFloat(m[1]));
+                        const textContent = m[2]
+                          .replace(/&amp;/g, '&')
+                          .replace(/&lt;/g, '<')
+                          .replace(/&gt;/g, '>')
+                          .replace(/&quot;/g, '"')
+                          .replace(/&#39;/g, "'")
+                          .trim();
+                        if (textContent) {
+                          const min = String(Math.floor(startSec / 60)).padStart(2, '0');
+                          const sec = String(startSec % 60).padStart(2, '0');
+                          timedCaptions.push({ startSec, startTime: `${min}:${sec}`, text: textContent });
+                        }
+                      }
                     }
+                  }
+
+                  if (timedCaptions.length > 0) {
+                    rawCaptionsText = timedCaptions.map((l) => l.text).join(' ');
                   }
                 }
               }
@@ -120,6 +151,7 @@ export async function POST(req: Request) {
         description,
         thumbnailUrl,
         rawCaptionsText: rawCaptionsText || undefined,
+        timedCaptions: timedCaptions.length > 0 ? timedCaptions : undefined,
       });
     }
 

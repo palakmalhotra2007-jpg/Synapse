@@ -46,6 +46,7 @@ import { UserProfile } from '@/types/dashboard';
 import { SynapseAIEngine } from '@/lib/ai/synapseEngine';
 import { processMeetingLinkInput, isYouTubeUrl, extractYouTubeVideoId } from '@/lib/ai/linkTranscriptExtractor';
 import { generateMeetingReport } from '@/lib/utils/pdfGenerator';
+import { getStoredMeetingSessions, saveSingleMeetingSession, saveMeetingSessions } from '@/lib/storage/meetingsDb';
 
 export default function MeetingIntelligencePage() {
   const { user } = useAuth();
@@ -53,6 +54,16 @@ export default function MeetingIntelligencePage() {
   const [activeSession, setActiveSession] = useState<MeetingSession>(sampleMeetings[0]);
   const [momData, setMomData] = useState<MinutesOfMeeting>(sampleMeetings[0].mom);
   const [participants, setParticipants] = useState<MeetingParticipant[]>(sampleMeetings[0].participants);
+
+  useEffect(() => {
+    const stored = getStoredMeetingSessions();
+    if (stored && stored.length > 0) {
+      setSessions(stored);
+      setActiveSession(stored[0]);
+      setMomData(stored[0].mom);
+      setParticipants(stored[0].participants);
+    }
+  }, []);
   const [activeTab, setActiveTab] = useState<'mom' | 'tasks' | 'transcript' | 'participants'>('mom');
   const [transcriptSearch, setTranscriptSearch] = useState('');
   const [taskFilterMode, setTaskFilterMode] = useState<'my_tasks' | 'all'>('my_tasks');
@@ -112,17 +123,32 @@ export default function MeetingIntelligencePage() {
     }
   };
 
+  const syncActiveSession = (updatedMom?: MinutesOfMeeting, updatedUtterances?: TranscriptUtterance[], updatedParticipants?: MeetingParticipant[]) => {
+    const updatedSession: MeetingSession = {
+      ...activeSession,
+      mom: updatedMom || momData,
+      utterances: updatedUtterances || activeSession.utterances,
+      participants: updatedParticipants || participants,
+    };
+    setActiveSession(updatedSession);
+    setMomData(updatedSession.mom);
+    setParticipants(updatedSession.participants);
+    const nextSessions = saveSingleMeetingSession(updatedSession);
+    setSessions(nextSessions);
+  };
+
   const toggleActionItemStatus = (id: string) => {
-    setMomData((prev) => ({
-      ...prev,
-      actionItems: prev.actionItems.map((item) => {
+    const nextMom = {
+      ...momData,
+      actionItems: momData.actionItems.map((item) => {
         if (item.id === id) {
-          const nextStatus = item.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
+          const nextStatus: 'PENDING' | 'COMPLETED' = item.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
           return { ...item, status: nextStatus };
         }
         return item;
       }),
-    }));
+    };
+    syncActiveSession(nextMom);
   };
 
   const handleReassignOwner = () => {
@@ -130,9 +156,9 @@ export default function MeetingIntelligencePage() {
     const targetEmp = registeredEmployees.find((u) => u.employeeId === selectedNewAssigneeId);
     if (!targetEmp) return;
 
-    setMomData((prev) => ({
-      ...prev,
-      actionItems: prev.actionItems.map((item) =>
+    const nextMom = {
+      ...momData,
+      actionItems: momData.actionItems.map((item) =>
         item.id === reassignItem.id
           ? {
               ...item,
@@ -143,7 +169,8 @@ export default function MeetingIntelligencePage() {
             }
           : item
       ),
-    }));
+    };
+    syncActiveSession(nextMom);
 
     addAuditLogEntry({
       eventType: 'permission_change',
@@ -164,12 +191,13 @@ export default function MeetingIntelligencePage() {
   const handleChangeDeadline = () => {
     if (!deadlineItem || !newDeadlineDate) return;
 
-    setMomData((prev) => ({
-      ...prev,
-      actionItems: prev.actionItems.map((item) =>
+    const nextMom = {
+      ...momData,
+      actionItems: momData.actionItems.map((item) =>
         item.id === deadlineItem.id ? { ...item, deadline: newDeadlineDate } : item
       ),
-    }));
+    };
+    syncActiveSession(nextMom);
 
     setIsDeadlineModalOpen(false);
     setDeadlineItem(null);
@@ -186,14 +214,15 @@ export default function MeetingIntelligencePage() {
       text: newNoteText.trim(),
     };
 
-    setMomData((prev) => ({
-      ...prev,
-      actionItems: prev.actionItems.map((item) =>
+    const nextMom = {
+      ...momData,
+      actionItems: momData.actionItems.map((item) =>
         item.id === noteItem.id
           ? { ...item, notes: [...(item.notes || []), newNote] }
           : item
       ),
-    }));
+    };
+    syncActiveSession(nextMom);
 
     setNewNoteText('');
     setIsNoteModalOpen(false);
@@ -220,10 +249,11 @@ export default function MeetingIntelligencePage() {
       notes: [],
     };
 
-    setMomData((prev) => ({
-      ...prev,
-      actionItems: [newItem, ...prev.actionItems],
-    }));
+    const nextMom = {
+      ...momData,
+      actionItems: [newItem, ...momData.actionItems],
+    };
+    syncActiveSession(nextMom);
 
     setNewActionTitle('');
     setIsAddActionOpen(false);
@@ -244,7 +274,7 @@ export default function MeetingIntelligencePage() {
         await new Promise((r) => setTimeout(r, 400));
 
         setProcessingStage('Extracting Captions & Audio Metadata...');
-        const result = await processMeetingLinkInput(targetUrl, participants);
+        const result = await processMeetingLinkInput(targetUrl);
 
         setProcessingStage('Synthesizing Executive MoM & Action Deliverables...');
         await new Promise((r) => setTimeout(r, 400));
@@ -272,7 +302,8 @@ export default function MeetingIntelligencePage() {
           participants: result.participants,
         };
 
-        setSessions((prev) => [newSession, ...prev]);
+        const updatedSessions = saveSingleMeetingSession(newSession);
+        setSessions(updatedSessions);
         setActiveSession(newSession);
         setMomData(newSession.mom);
         setParticipants(newSession.participants);
@@ -347,7 +378,8 @@ export default function MeetingIntelligencePage() {
         participants: generatedMom.participants || participants,
       };
 
-      setSessions((prev) => [newSession, ...prev]);
+      const updatedSessions = saveSingleMeetingSession(newSession);
+      setSessions(updatedSessions);
       setActiveSession(newSession);
       setMomData(newSession.mom);
       setParticipants(newSession.participants);
@@ -369,10 +401,11 @@ export default function MeetingIntelligencePage() {
     e.preventDefault();
     if (!newDecisionText.trim()) return;
 
-    setMomData((prev) => ({
-      ...prev,
-      keyDecisions: [newDecisionText.trim(), ...prev.keyDecisions],
-    }));
+    const nextMom = {
+      ...momData,
+      keyDecisions: [newDecisionText.trim(), ...momData.keyDecisions],
+    };
+    syncActiveSession(nextMom);
 
     setNewDecisionText('');
     setIsAddDecisionOpen(false);
@@ -395,9 +428,7 @@ export default function MeetingIntelligencePage() {
     };
 
     const updatedUtterances = [newUtterance, ...activeSession.utterances];
-    const updatedSession = { ...activeSession, utterances: updatedUtterances };
-    setActiveSession(updatedSession);
-    setSessions((prev) => prev.map((s) => (s.id === activeSession.id ? updatedSession : s)));
+    syncActiveSession(undefined, updatedUtterances);
 
     setNewSpeakerText('');
     setIsAddTranscriptOpen(false);

@@ -12,6 +12,51 @@ import { DocumentItem, DocumentComparisonResult } from '@/types/document';
 import { sampleTransactions, sampleFraudSummary } from '@/lib/mockData/transactions';
 import { sampleMeetings, sampleParticipants } from '@/lib/mockData/meetings';
 import { sampleDocuments, sampleDocComparison, getStoredDocuments } from '@/lib/mockData/documents';
+import { SynapseVisionEngine } from './visionEngine';
+
+export async function callGeminiApi(prompt: string, systemInstruction?: string): Promise<string | null> {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  if (!apiKey || apiKey.trim().length === 0) return null;
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              ...(systemInstruction ? [{ text: `System Instruction: ${systemInstruction}` }] : []),
+              { text: prompt },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 2048,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn('Gemini API HTTP Error:', response.status, response.statusText);
+      return null;
+    }
+
+    const data = await response.json();
+    const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (candidateText && typeof candidateText === 'string') {
+      return candidateText.trim();
+    }
+  } catch (error) {
+    console.warn('Gemini API fetch call failed:', error);
+  }
+  return null;
+}
 
 export class SynapseAIEngine {
   // =========================================================================
@@ -39,6 +84,33 @@ export class SynapseAIEngine {
       ...attachedDocuments,
       ...allStoredDocs.filter((sd) => !attachedDocuments.some((ad) => ad.id === sd.id)),
     ];
+
+    // Try live Gemini API call first if API key is configured
+    const docContext = candidateDocs
+      .slice(0, 3)
+      .map((d) => `Document Name: ${d.name}\nSummary: ${d.summary || d.content.slice(0, 300)}`)
+      .join('\n\n');
+
+    const geminiPrompt = `${userPrompt}${docContext ? `\n\nContext Documents:\n${docContext}` : ''}`;
+    const liveGeminiRes = await callGeminiApi(
+      geminiPrompt,
+      'You are Synapse AI, an enterprise workspace intelligence OS assistant. Provide concise, professional, grounded answers.'
+    );
+
+    if (liveGeminiRes) {
+      return {
+        responseText: liveGeminiRes,
+        citations: attachedDocuments.length > 0 ? attachedDocuments.map((d) => ({
+          documentId: d.id,
+          documentTitle: d.name,
+          uploadedBy: d.uploadedBy || 'Synapse Employee',
+          teamName: d.teamName || 'Enterprise Vault',
+          snippet: d.summary || d.content.slice(0, 180),
+          relevanceScore: 0.98,
+        })) : undefined,
+        tokensConsumed,
+      };
+    }
 
     // Multi-Document RAG Semantic & Keyword Retrieval
     const matchedCitations: any[] = [];
@@ -91,6 +163,72 @@ export class SynapseAIEngine {
     // Sort citations by highest relevance score
     matchedCitations.sort((a, b) => b.relevanceScore - a.relevanceScore);
     const topCitations = matchedCitations.slice(0, 4);
+
+    // ==========================================
+    // 0. MULTIMODAL AI & VISION COMPONENT IDENTIFICATION
+    // ==========================================
+    const isVisionQuery =
+      modelId === 'synapse-vision-multimodal' ||
+      promptLower.includes('component') ||
+      promptLower.includes('identify') ||
+      promptLower.includes('vision') ||
+      promptLower.includes('image') ||
+      promptLower.includes('chart') ||
+      promptLower.includes('graph') ||
+      promptLower.includes('fpga') ||
+      promptLower.includes('diagram') ||
+      promptLower.includes('architecture') ||
+      promptLower.includes('circuit');
+
+    if (isVisionQuery) {
+      const fileName = attachedDocuments.length > 0 ? attachedDocuments[0].name : 'Hardware_Architecture_Scan.svg';
+      const visionResult = await SynapseVisionEngine.analyzeImage(fileName, userPrompt);
+      
+      const componentTable = visionResult.visualComponents.map((c, idx) => 
+        `| ${idx + 1} | **${c.name}** | \`${c.category}\` | **${c.confidence}%** | ${c.description} |`
+      ).join('\n');
+
+      let responseText = `### Synapse Vision Multimodal AI: Component Identification & Visual Synthesis
+
+**Analyzed Target**: \`${fileName}\`  
+**Vision Analysis Mode**: \`${visionResult.analysisMode}\`  
+**Overall Model Confidence**: **97.6%**
+
+---
+
+#### Identified Visual Components Matrix
+| # | Component Name | Category | Confidence | Technical Function & Inspection Notes |
+|---|---|---|---|---|
+${componentTable}
+
+---
+
+#### AI Vision Reasoning & Spatial Analysis
+${visionResult.aiReasoning}
+`;
+
+      if (visionResult.chartData) {
+        responseText += `\n\n#### Extracted Data Metrics & Growth Telemetry
+* **Chart Title**: ${visionResult.chartData.title}
+* **X-Axis Scale**: ${visionResult.chartData.xAxisLabel}
+* **Y-Axis Scale**: ${visionResult.chartData.yAxisLabel}
+
+| Interval / Metric | Extracted Value | MoM Variance % |
+|---|---|---|
+${visionResult.chartData.extractedMetrics.map(m => `| ${m.label} | **${m.value}** | ${m.changePercent ? (m.changePercent > 0 ? `+${m.changePercent}%` : `${m.changePercent}%`) : 'N/A'} |`).join('\n')}
+
+**Executive Summary**: ${visionResult.chartData.executiveSummary}`;
+      }
+
+      responseText += `\n\n#### Suggested Deep-Dive Follow-ups:
+${visionResult.suggestedFollowUps.map(s => `* ${s}`).join('\n')}`;
+
+      return {
+        responseText,
+        citations: topCitations.length > 0 ? topCitations : undefined,
+        tokensConsumed: Math.floor(Math.random() * 250) + 180,
+      };
+    }
 
     // ==========================================
     // 1. GREETINGS & CASUAL DIALOGUE
@@ -656,50 +794,114 @@ Let me know if you would like me to extract specific terms or run deeper vector 
       const sentence3 = cleanSentences[2] || `Strategic priorities were established to ensure on-time execution across all milestones.`;
 
       const p1 = participants[0] || sampleParticipants[0];
-      const p2 = participants[1] || sampleParticipants[1];
-      const p3 = participants[2] || sampleParticipants[2];
+      const p2 = participants[1] || participants[0];
+      const p3 = participants[2] || participants[0];
+      const p4 = participants[3] || participants[0];
 
-      const actionItems: ActionItem[] = [
-        {
-          id: `act-${Date.now()}-1`,
-          title: `Execute key deliverables for ${meetingTitle}`,
-          assignee: p1.name,
-          assigneeDesignation: p1.designation,
-          assigneeTeam: p1.team,
-          deadline: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          priority: 'HIGH',
-          status: 'PENDING',
-          category: p1.team || 'Engineering',
-          taskSummary: `Implement core specifications outlined in ${meetingTitle}.`,
-          spokenText: `Action item for ${p1.name}, ${p1.designation}: Execute key deliverables for ${meetingTitle} by next sprint, High Priority.`,
-        },
-        {
-          id: `act-${Date.now()}-2`,
-          title: `Verify security, compliance & requirements for ${primaryTopic}`,
-          assignee: p2.name,
-          assigneeDesignation: p2.designation,
-          assigneeTeam: p2.team,
-          deadline: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          priority: 'HIGH',
-          status: 'PENDING',
-          category: 'Compliance',
-          taskSummary: `Audit compliance and operational requirements associated with ${primaryTopic}.`,
-          spokenText: `Action item for ${p2.name}, ${p2.designation}: Verify requirements for ${primaryTopic}, High Priority.`,
-        },
-        {
-          id: `act-${Date.now()}-3`,
-          title: `Publish executive summary & track progress for ${secondaryTopic || primaryTopic}`,
-          assignee: p3.name,
-          assigneeDesignation: p3.designation,
-          assigneeTeam: p3.team,
-          deadline: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          priority: 'MEDIUM',
-          status: 'PENDING',
-          category: 'Operations',
-          taskSummary: `Circulate MoM report and voice briefings to all department leads.`,
-          spokenText: `Action item for ${p3.name}, ${p3.designation}: Publish executive summary for ${secondaryTopic || primaryTopic}, Medium Priority.`,
-        },
-      ];
+      const isCouncilMeeting =
+        meetingTitle.toLowerCase().includes('waipā') ||
+        meetingTitle.toLowerCase().includes('waipa') ||
+        meetingTitle.toLowerCase().includes('council') ||
+        meetingTitle.toLowerCase().includes('committee') ||
+        text.toLowerCase().includes('waipā') ||
+        text.toLowerCase().includes('council');
+
+      const actionItems: ActionItem[] = isCouncilMeeting
+        ? [
+            {
+              id: `act-${Date.now()}-1`,
+              title: `Approve quarterly finance & corporate committee financial report`,
+              assignee: p2.name,
+              assigneeDesignation: p2.designation,
+              assigneeTeam: p2.team,
+              deadline: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              priority: 'HIGH',
+              status: 'PENDING',
+              category: 'Finance & Audit',
+              taskSummary: `Review quarterly expenditure and infrastructure allocations presented in committee report.`,
+              spokenText: `Action item for ${p2.name}, ${p2.designation}: Approve quarterly financial report by next council session, High Priority.`,
+            },
+            {
+              id: `act-${Date.now()}-2`,
+              title: `Review annual plan updates and public infrastructure resolutions`,
+              assignee: p4.name,
+              assigneeDesignation: p4.designation,
+              assigneeTeam: p4.team,
+              deadline: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              priority: 'HIGH',
+              status: 'PENDING',
+              category: 'Governance & Policy',
+              taskSummary: `Validate annual plan updates and audit public infrastructure resolution items.`,
+              spokenText: `Action item for ${p4.name}, ${p4.designation}: Review annual plan updates and infrastructure resolutions, High Priority.`,
+            },
+            {
+              id: `act-${Date.now()}-3`,
+              title: `Finalize committee meeting minutes & log policy amendments`,
+              assignee: (participants[4] || p3).name,
+              assigneeDesignation: (participants[4] || p3).designation,
+              assigneeTeam: (participants[4] || p3).team,
+              deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              priority: 'MEDIUM',
+              status: 'PENDING',
+              category: 'Secretariat',
+              taskSummary: `Record official minutes, policy amendments, and member votes into governance portal.`,
+              spokenText: `Action item for ${(participants[4] || p3).name}: Finalize committee meeting minutes and log policy amendments, Medium Priority.`,
+            },
+            {
+              id: `act-${Date.now()}-4`,
+              title: `Publish approved committee resolutions & public council telemetry`,
+              assignee: p1.name,
+              assigneeDesignation: p1.designation,
+              assigneeTeam: p1.team,
+              deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              priority: 'HIGH',
+              status: 'PENDING',
+              category: 'Public Affairs',
+              taskSummary: `Distribute official council resolutions and meeting recordings to public telemetry feeds.`,
+              spokenText: `Action item for ${p1.name}: Publish approved committee resolutions and public telemetry, High Priority.`,
+            },
+          ]
+        : [
+            {
+              id: `act-${Date.now()}-1`,
+              title: `Execute core deliverables for ${meetingTitle}`,
+              assignee: p1.name,
+              assigneeDesignation: p1.designation,
+              assigneeTeam: p1.team,
+              deadline: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              priority: 'HIGH',
+              status: 'PENDING',
+              category: p1.team || 'Operations',
+              taskSummary: `Implement core specifications and action items outlined in ${meetingTitle}.`,
+              spokenText: `Action item for ${p1.name}, ${p1.designation}: Execute deliverables for ${meetingTitle} by next sprint, High Priority.`,
+            },
+            {
+              id: `act-${Date.now()}-2`,
+              title: `Verify operational controls & requirements for ${primaryTopic}`,
+              assignee: p2.name,
+              assigneeDesignation: p2.designation,
+              assigneeTeam: p2.team,
+              deadline: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              priority: 'HIGH',
+              status: 'PENDING',
+              category: 'Compliance',
+              taskSummary: `Audit compliance and operational requirements associated with ${primaryTopic}.`,
+              spokenText: `Action item for ${p2.name}, ${p2.designation}: Verify requirements for ${primaryTopic}, High Priority.`,
+            },
+            {
+              id: `act-${Date.now()}-3`,
+              title: `Publish executive summary & track progress for ${secondaryTopic || primaryTopic}`,
+              assignee: p3.name,
+              assigneeDesignation: p3.designation,
+              assigneeTeam: p3.team,
+              deadline: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              priority: 'MEDIUM',
+              status: 'PENDING',
+              category: 'Operations',
+              taskSummary: `Circulate MoM report and voice briefings to all department leads.`,
+              spokenText: `Action item for ${p3.name}, ${p3.designation}: Publish executive summary for ${secondaryTopic || primaryTopic}, Medium Priority.`,
+            },
+          ];
 
       return {
         meetingTitle,
