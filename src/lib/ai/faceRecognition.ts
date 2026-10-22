@@ -1,9 +1,15 @@
 'use client';
 
-import * as faceapi from 'face-api.js';
-
 let modelsLoaded = false;
 let loadingPromise: Promise<void> | null = null;
+let faceapiModule: any = null;
+
+async function getFaceApi() {
+  if (!faceapiModule) {
+    faceapiModule = await import('face-api.js');
+  }
+  return faceapiModule;
+}
 
 /**
  * Load face-api.js neural network models from CDN
@@ -15,6 +21,7 @@ export async function loadFaceAPIModels(): Promise<void> {
 
   loadingPromise = (async () => {
     try {
+      const faceapi = await getFaceApi();
       const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
       
       await Promise.all([
@@ -24,9 +31,9 @@ export async function loadFaceAPIModels(): Promise<void> {
       ]);
 
       modelsLoaded = true;
-      console.log('✅ Face-API.js models loaded successfully');
+      console.log('Face-API.js models loaded successfully');
     } catch (error) {
-      console.error('❌ Failed to load face-api.js models:', error);
+      console.error('Failed to load face-api.js models:', error);
       throw error;
     }
   })();
@@ -43,6 +50,7 @@ export async function extractFaceDescriptor(
 ): Promise<Float32Array | null> {
   try {
     await loadFaceAPIModels();
+    const faceapi = await getFaceApi();
 
     const detection = await faceapi
       .detectSingleFace(imageElement)
@@ -65,15 +73,14 @@ export async function extractFaceDescriptor(
  * Compare two face descriptors and return similarity score (0-100%)
  * Uses Euclidean distance - lower distance = higher similarity
  */
-export function compareFaceDescriptors(
+export async function compareFaceDescriptors(
   descriptor1: Float32Array,
   descriptor2: Float32Array
-): number {
+): Promise<number> {
+  const faceapi = await getFaceApi();
   const distance = faceapi.euclideanDistance(descriptor1, descriptor2);
   
   // Convert distance to confidence percentage
-  // Distance typically ranges from 0.0 (identical) to 1.0 (completely different)
-  // We use 0.6 as threshold - anything below is a match
   const maxDistance = 0.6;
   const confidence = Math.max(0, Math.min(100, (1 - distance / maxDistance) * 100));
   
@@ -88,6 +95,7 @@ export async function detectFaceInVideo(
 ): Promise<any | null> {
   try {
     await loadFaceAPIModels();
+    const faceapi = await getFaceApi();
 
     const detection = await faceapi
       .detectSingleFace(videoElement)
@@ -149,7 +157,7 @@ export async function verifyFaceMatch(
       };
     }
 
-    const confidence = compareFaceDescriptors(currentDescriptor, referenceDescriptor);
+    const confidence = await compareFaceDescriptors(currentDescriptor, referenceDescriptor);
     const matched = confidence >= 75; // 75% threshold for match
 
     return { matched, confidence };
@@ -165,10 +173,11 @@ export async function verifyFaceMatch(
 /**
  * Draw face detection overlay on canvas
  */
-export function drawFaceDetection(
+export async function drawFaceDetection(
   canvas: HTMLCanvasElement,
   detection: any
-): void {
+): Promise<void> {
+  const faceapi = await getFaceApi();
   const displaySize = { width: canvas.width, height: canvas.height };
   faceapi.matchDimensions(canvas, displaySize);
 

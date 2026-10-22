@@ -38,7 +38,7 @@ import { TEAMS_LIST, canUserAccessVault, getStoredUsers, addAuditLogEntry } from
 import { SynapseAIEngine } from '@/lib/ai/synapseEngine';
 import { DocumentUploadModal } from '@/components/documents/DocumentUploadModal';
 import { DocumentPreviewDrawer } from '@/components/documents/DocumentPreviewDrawer';
-import { generateDocumentDiffReport } from '@/lib/utils/pdfGenerator';
+import { generateDocumentDiffReport, generateDocumentPDF, generateAllDocumentsBatchPDF } from '@/lib/utils/pdfGenerator';
 import { EmployeeProfileDrawer } from '@/components/employees/EmployeeProfileDrawer';
 import { AccessDenied } from '@/components/ui/AccessDenied';
 import { useAuth } from '@/lib/firebase/authContext';
@@ -159,60 +159,7 @@ export default function DocumentIntelligencePage() {
   const handleDirectDownloadDoc = (doc: DocumentItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
 
-    const filePayload = `================================================================================
-SYNAPSE ENTERPRISE VAULT DOCUMENT
-DOCUMENT NAME: ${doc.name}
-DOCUMENT ID: ${doc.id}
-VAULT REPOSITORY: ${doc.vaultId?.toUpperCase()} VAULT
-CLASSIFICATION TIER: ${doc.classification}
-SECURITY CLEARANCE: ${doc.securityLevel}
-UPLOADED BY: ${doc.uploadedBy || 'Specialist'} (${doc.uploadedByEmployeeId || 'EMP-ENG-001'})
-DATE INGESTED: ${new Date(doc.uploadedAt).toLocaleString()}
-================================================================================
-
---- EXECUTIVE SUMMARY ---
-${doc.summary || 'No executive summary available for this document.'}
-
---- DOCUMENT CONTENT PAYLOAD ---
-${doc.content || 'Encrypted document content stored in vault isolation.'}
-
---- KEY CONTRACTUAL CLAUSES (${doc.keyClauses?.length || 0}) ---
-${
-  doc.keyClauses && doc.keyClauses.length > 0
-    ? doc.keyClauses
-        .map(
-          (c, idx) =>
-            `${idx + 1}. [${c.type.toUpperCase()}] ${c.title} (${c.pageOrSection}) - Risk Level: ${c.riskLevel}\n   Snippet: "${c.snippet}"`
-        )
-        .join('\n\n')
-    : 'No key clauses indexed.'
-}
-
-================================================================================
-VERIFIED CRYPTOGRAPHIC VAULT AUDIT TRAIL & COMPLIANCE LOG
-================================================================================
-`;
-
-    let exportFileName = doc.name;
-    if (!exportFileName.endsWith('.txt') && !exportFileName.endsWith('.md') && !exportFileName.endsWith('.csv')) {
-      exportFileName = exportFileName.replace(/\.[^/.]+$/, '') + '.txt';
-    }
-
-    const blob = new Blob([filePayload], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = exportFileName;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-
-    setTimeout(() => {
-      if (document.body.contains(link)) {
-        document.body.removeChild(link);
-      }
-      URL.revokeObjectURL(url);
-    }, 300);
+    generateDocumentPDF(doc);
 
     addAuditLogEntry({
       eventType: 'document_access',
@@ -220,10 +167,27 @@ VERIFIED CRYPTOGRAPHIC VAULT AUDIT TRAIL & COMPLIANCE LOG
       actorName: user?.displayName || 'Specialist',
       actorRole: user?.rbacRole || 'Employee',
       targetResource: `${doc.name} (${doc.id})`,
-      action: 'Downloaded document payload',
+      action: 'Downloaded document PDF payload',
       status: 'SUCCESS',
       ipAddress: '192.168.1.100',
-      details: `File size: ${doc.size}, Vault: ${doc.vaultId.toUpperCase()}`,
+      details: `PDF generated. File size: ${doc.size}, Vault: ${doc.vaultId.toUpperCase()}`,
+    });
+  };
+
+  const handleDownloadAllDocsPDF = () => {
+    const currentVaultName = vaultsList.find((v) => v.id === selectedVault)?.label || 'All Vaults';
+    generateAllDocumentsBatchPDF(filteredDocuments, currentVaultName);
+
+    addAuditLogEntry({
+      eventType: 'document_access',
+      actorEmployeeId: user?.employeeId || 'EMP-ENG-001',
+      actorName: user?.displayName || 'Specialist',
+      actorRole: user?.rbacRole || 'Employee',
+      targetResource: `${currentVaultName} (${filteredDocuments.length} documents)`,
+      action: 'Downloaded batch vault dossier PDF',
+      status: 'SUCCESS',
+      ipAddress: '192.168.1.100',
+      details: `Exported ${filteredDocuments.length} indexed documents as unified PDF dossier.`,
     });
   };
 
@@ -276,6 +240,17 @@ VERIFIED CRYPTOGRAPHIC VAULT AUDIT TRAIL & COMPLIANCE LOG
           >
             Upload to Vault
           </Button>
+
+          {activeTab === 'workspace' && filteredDocuments.length > 0 && (
+            <Button
+              onClick={handleDownloadAllDocsPDF}
+              variant="outline"
+              size="sm"
+              leftIcon={<Download className="w-4 h-4 text-sky-600" />}
+            >
+              Download All as PDF
+            </Button>
+          )}
 
           {activeTab === 'compare' && (
             <Button onClick={exportComparisonReport} variant="outline" size="sm" leftIcon={<Download className="w-4 h-4" />}>
@@ -376,14 +351,26 @@ VERIFIED CRYPTOGRAPHIC VAULT AUDIT TRAIL & COMPLIANCE LOG
           ) : (
             /* Document Library Table */
             <Card className="p-0 overflow-hidden border-slate-200/80">
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Indexed Vault Documents ({filteredDocuments.length})
                 </span>
-                <span className="text-[11px] text-emerald-700 font-mono flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>AES-256 Storage Verified</span>
-                </span>
+                <div className="flex items-center gap-3">
+                  {filteredDocuments.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadAllDocsPDF}
+                      leftIcon={<Download className="w-3.5 h-3.5 text-sky-600" />}
+                    >
+                      Download All (PDF)
+                    </Button>
+                  )}
+                  <span className="text-[11px] text-emerald-700 font-mono flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>AES-256 Storage Verified</span>
+                  </span>
+                </div>
               </div>
 
               {filteredDocuments.length === 0 ? (

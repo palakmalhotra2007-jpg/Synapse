@@ -23,6 +23,7 @@ import { DocumentItem, DocumentKeyClause, DocumentVersion, DocumentAccessHistory
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/firebase/authContext';
+import { generateDocumentPDF } from '@/lib/utils/pdfGenerator';
 import { addAuditLogEntry, getStoredUsers } from '@/lib/auth/usersDb';
 
 interface DocumentPreviewDrawerProps {
@@ -46,62 +47,7 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
   const handleDownload = () => {
     if (!doc) return;
 
-    // Construct rich text content representing the complete document payload
-    const filePayload = `================================================================================
-SYNAPSE ENTERPRISE VAULT DOCUMENT
-DOCUMENT NAME: ${doc.name}
-DOCUMENT ID: ${doc.id}
-VAULT REPOSITORY: ${doc.vaultId?.toUpperCase()} VAULT
-CLASSIFICATION TIER: ${doc.classification}
-SECURITY CLEARANCE: ${doc.securityLevel}
-UPLOADED BY: ${doc.uploadedBy || 'Specialist'} (${doc.uploadedByEmployeeId || 'EMP-ENG-001'})
-DATE INGESTED: ${new Date(doc.uploadedAt).toLocaleString()}
-================================================================================
-
---- EXECUTIVE SUMMARY ---
-${doc.summary || 'No executive summary available for this document.'}
-
---- DOCUMENT CONTENT PAYLOAD ---
-${doc.content || 'Encrypted document content stored in vault isolation.'}
-
---- KEY CONTRACTUAL CLAUSES (${doc.keyClauses?.length || 0}) ---
-${
-  doc.keyClauses && doc.keyClauses.length > 0
-    ? doc.keyClauses
-        .map(
-          (c, idx) =>
-            `${idx + 1}. [${c.type.toUpperCase()}] ${c.title} (${c.pageOrSection}) - Risk Level: ${c.riskLevel}\n   Snippet: "${c.snippet}"`
-        )
-        .join('\n\n')
-    : 'No key clauses indexed.'
-}
-
-================================================================================
-VERIFIED CRYPTOGRAPHIC VAULT AUDIT TRAIL & COMPLIANCE LOG
-================================================================================
-`;
-
-    // Ensure safe file extension for browser download
-    let exportFileName = doc.name;
-    if (!exportFileName.endsWith('.txt') && !exportFileName.endsWith('.md') && !exportFileName.endsWith('.csv')) {
-      exportFileName = exportFileName.replace(/\.[^/.]+$/, '') + '.txt';
-    }
-
-    const blob = new Blob([filePayload], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = exportFileName;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-
-    setTimeout(() => {
-      if (document.body.contains(link)) {
-        document.body.removeChild(link);
-      }
-      URL.revokeObjectURL(url);
-    }, 300);
+    generateDocumentPDF(doc);
 
     addAuditLogEntry({
       eventType: 'document_access',
@@ -109,7 +55,7 @@ VERIFIED CRYPTOGRAPHIC VAULT AUDIT TRAIL & COMPLIANCE LOG
       actorName: user?.displayName || 'Specialist',
       actorRole: user?.rbacRole || 'Employee',
       targetResource: `${doc.name} (${doc.id})`,
-      action: 'Downloaded document payload',
+      action: 'Downloaded document PDF payload',
       status: 'SUCCESS',
       ipAddress: '192.168.1.100',
       details: `File size: ${doc.size}, Vault: ${doc.vaultId.toUpperCase()}`,
@@ -150,8 +96,8 @@ VERIFIED CRYPTOGRAPHIC VAULT AUDIT TRAIL & COMPLIANCE LOG
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={handleDownload} leftIcon={<Download className="w-4 h-4" />}>
-              Download
+            <Button variant="outline" size="sm" onClick={handleDownload} leftIcon={<Download className="w-4 h-4 text-sky-600" />}>
+              Download PDF
             </Button>
             <button
               onClick={onClose}
