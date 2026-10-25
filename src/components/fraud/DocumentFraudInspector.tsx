@@ -591,19 +591,6 @@ export function DocumentFraudInspector() {
                       {report.extractedDueDate || '2026-11-24'}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-slate-400 block text-[10px]">Subtotal + Tax</span>
-                    <span className="font-mono text-slate-700">
-                      ${report.ocrReconciliation?.subtotal?.toFixed(2) || '100.00'} + $
-                      {report.ocrReconciliation?.tax?.toFixed(2) || '10.00'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-[10px]">Declared Grand Total</span>
-                    <span className="font-mono font-bold text-slate-900">
-                      ${report.ocrReconciliation?.declared_total?.toFixed(2) || '145.00'}
-                    </span>
-                  </div>
                 </div>
               </div>
 

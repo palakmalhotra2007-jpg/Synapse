@@ -9,7 +9,7 @@ build/
 .env.*.local
 
 .vercel/
-
+.venv/
 *.log
 *.tsbuildinfo
 
