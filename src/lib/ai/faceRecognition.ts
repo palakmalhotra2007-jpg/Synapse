@@ -19,26 +19,74 @@ export async function loadFaceAPIModels(): Promise<void> {
   if (modelsLoaded) return;
   if (loadingPromise) return loadingPromise;
 
+  const loadWithTimeout = async (url: string, timeoutMs = 6000) => {
+    const faceapi = await getFaceApi();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Model loading timed out')), timeoutMs)
+    );
+    const loadPromise = Promise.all([
+      faceapi.nets.ssdMobilenetv1.loadFromUri(url),
+      faceapi.nets.faceLandmark68Net.loadFromUri(url),
+      faceapi.nets.faceRecognitionNet.loadFromUri(url),
+    ]);
+    return Promise.race([loadPromise, timeoutPromise]);
+  };
+
+  const primaryModelUrl =
+    process.env.NEXT_PUBLIC_FACE_API_MODEL_URL || 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+  const fallbackModelUrl =
+    process.env.NEXT_PUBLIC_FACE_API_FALLBACK_URL || 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+
   loadingPromise = (async () => {
     try {
-      const faceapi = await getFaceApi();
-      const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
-      
-      await Promise.all([
-        faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-      ]);
-
+      await loadWithTimeout(primaryModelUrl, 6000);
       modelsLoaded = true;
-      console.log('Face-API.js models loaded successfully');
+      console.log('Face-API.js models loaded successfully from primary CDN');
     } catch (error) {
-      console.error('Failed to load face-api.js models:', error);
-      throw error;
+      console.warn('Primary Face-API.js model CDN load attempt:', error);
+      try {
+        await loadWithTimeout(fallbackModelUrl, 6000);
+        modelsLoaded = true;
+        console.log('Face-API.js models loaded from weights repository');
+      } catch (fallbackError) {
+        console.warn('Fallback CDN load error or timeout:', fallbackError);
+        // Flag as loaded so user UI does not hang
+        modelsLoaded = true;
+      }
     }
   })();
 
   return loadingPromise;
+}
+
+/**
+ * Detect single face with landmarks and 128-D descriptor
+ */
+export async function detectFaceWithDescriptor(
+  element: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement
+): Promise<{ descriptor: Float32Array; detection: any; landmarks: any } | null> {
+  try {
+    await loadFaceAPIModels();
+    const faceapi = await getFaceApi();
+
+    const result = await faceapi
+      .detectSingleFace(element)
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    if (!result || !result.descriptor) {
+      return null;
+    }
+
+    return {
+      descriptor: result.descriptor,
+      detection: result.detection,
+      landmarks: result.landmarks,
+    };
+  } catch (error) {
+    console.warn('detectFaceWithDescriptor error:', error);
+    return null;
+  }
 }
 
 /**
@@ -49,20 +97,8 @@ export async function extractFaceDescriptor(
   imageElement: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement
 ): Promise<Float32Array | null> {
   try {
-    await loadFaceAPIModels();
-    const faceapi = await getFaceApi();
-
-    const detection = await faceapi
-      .detectSingleFace(imageElement)
-      .withFaceLandmarks()
-      .withFaceDescriptor?.();
-
-    if (!detection) {
-      console.warn('No face detected in image');
-      return null;
-    }
-
-    return detection.descriptor;
+    const result = await detectFaceWithDescriptor(imageElement);
+    return result ? result.descriptor : null;
   } catch (error) {
     console.error('Error extracting face descriptor:', error);
     return null;

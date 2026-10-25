@@ -10,38 +10,26 @@ import {
   Trash2,
   Plus,
   Layers,
-  ChevronDown,
-  Cpu,
-  Brain,
-  Shield,
-  UploadCloud,
   CheckCircle2,
   Copy,
-  ExternalLink,
   Download,
-  MessageSquare,
-  Coins,
   User,
   RefreshCw,
-  Camera,
-  BarChart3,
-  TrendingUp,
-  Image as ImageIcon,
+  MessageSquare,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
-import { useAuth } from '@/lib/firebase/authContext';
-import { ChatMessage, AIModelId, AIModelSpec, SystemPromptPreset, ConversationSession } from '@/types/workspace';
+import { ChatMessage, AIModelId, AIModelSpec, ConversationSession } from '@/types/workspace';
 import { DocumentItem } from '@/types/document';
 import { getStoredDocuments } from '@/lib/mockData/documents';
 import { SynapseAIEngine } from '@/lib/ai/synapseEngine';
 import { DocumentUploadModal } from '@/components/documents/DocumentUploadModal';
-import { ImageVisionModal } from '@/components/vision/ImageVisionModal';
 import { TEAMS_LIST } from '@/lib/auth/usersDb';
 import { TeamId } from '@/types/dashboard';
 import { generateChatHistoryReport } from '@/lib/utils/pdfGenerator';
+import { useAuth } from '@/lib/firebase/authContext';
 
 
 const models: AIModelSpec[] = [
@@ -79,36 +67,6 @@ const models: AIModelSpec[] = [
   },
 ];
 
-const promptPresets: SystemPromptPreset[] = [
-  {
-    id: 'p1',
-    title: 'Financial Fraud Auditor',
-    description: 'Analyze transactions for velocity surges and geo-mismatches.',
-    prompt: 'Acts as a senior financial audit bot. Identify potential fraud risks in transaction data.',
-    category: 'finance',
-  },
-  {
-    id: 'p2',
-    title: 'Executive Summarizer',
-    description: 'Distill documents into key decisions and action items.',
-    prompt: 'Summarize the input text into executive bullet points, key decisions, and risks.',
-    category: 'summary',
-  },
-  {
-    id: 'p3',
-    title: 'Code Architect & Security',
-    description: 'Review system architecture and Firestore security rules.',
-    prompt: 'Review architecture for optimal Next.js, Cloud Run, and Firebase security.',
-    category: 'code',
-  },
-  {
-    id: 'p4',
-    title: 'Contract SLA Evaluator',
-    description: 'Extract uptime commitments, penalties, and liability limits.',
-    prompt: 'Evaluate the attached agreement for uptime SLA clauses, service credits, and liability caps.',
-    category: 'finance',
-  },
-];
 
 const initialSessions: ConversationSession[] = [
   {
@@ -139,15 +97,14 @@ export default function AIWorkspacePage() {
     {
       id: 'm-init',
       role: 'assistant',
-      content: `Hello! I'm **Synapse Multi-Modal AI**, your intelligent workspace companion.
+      content: `Hello! I'm **Synapse AI**, your enterprise intelligence and workspace companion.
 
 Here is what I can do for you:
-- **Image-Based Knowledge Search**: Upload machine/hardware images or technical diagrams and ask *"What components are visible?"*
-- **Automatic Chart & Graph Understanding**: Upload bar graphs, pie charts, or dashboards and get growth percentages & trend analysis.
-- **Duplicate & Similar Image Detection**: Perceptual hash comparisons to detect forged signatures, modified contracts, or duplicate graphics.
 - **Universal Document RAG**: Ask questions grounded in all employee-uploaded PDFs, spreadsheets, and policies.
+- **Cross-Vault Knowledge Synthesis**: Correlate insights across engineering, finance, legal, and ops vaults.
+- **Deep Logic & Multi-Step Reasoning**: Select specialized models tailored for audits, summaries, and code architecture.
 
-Click the quick-launch chips above or upload an image/document below to begin!`,
+Select a model or attach relevant documents below to begin!`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       modelUsed: 'synapse-flash-v4',
     },
@@ -162,13 +119,6 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
   const [allDocs, setAllDocs] = useState<DocumentItem[]>([]);
   const [kbTeamFilter, setKbTeamFilter] = useState<string>('all');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isVisionModalOpen, setIsVisionModalOpen] = useState(false);
-  const [visionModalMode, setVisionModalMode] = useState<'image_search' | 'chart_understanding' | 'duplicate_detection'>('image_search');
-
-  const openVisionModalWithMode = (mode: 'image_search' | 'chart_understanding' | 'duplicate_detection') => {
-    setVisionModalMode(mode);
-    setIsVisionModalOpen(true);
-  };
 
 
   useEffect(() => {
@@ -421,36 +371,6 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
                 ))}
               </select>
             </div>
-
-            {/* Quick Vision Feature Action Badges */}
-            <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
-              <button
-                onClick={() => openVisionModalWithMode('image_search')}
-                className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-[11px] font-bold text-sky-700 flex items-center gap-1.5 transition-all shadow-xs"
-                title="Upload machine / board image to extract visible components"
-              >
-                <Camera className="w-3.5 h-3.5 text-sky-600" />
-                <span className="hidden md:inline">Image Search</span>
-              </button>
-
-              <button
-                onClick={() => openVisionModalWithMode('chart_understanding')}
-                className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[11px] font-bold text-purple-700 flex items-center gap-1.5 transition-all shadow-xs"
-                title="Upload bar graphs, pie charts, and dashboards to calculate trends"
-              >
-                <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
-                <span className="hidden md:inline">Chart AI</span>
-              </button>
-
-              <button
-                onClick={() => openVisionModalWithMode('duplicate_detection')}
-                className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-[11px] font-bold text-rose-700 flex items-center gap-1.5 transition-all shadow-xs"
-                title="Check perceptual image hash and vault duplicates"
-              >
-                <ImageIcon className="w-3.5 h-3.5 text-rose-600" />
-                <span className="hidden md:inline">Duplicate Scan</span>
-              </button>
-            </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -655,14 +575,6 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
               >
                 <Paperclip className="w-4 h-4" />
               </button>
-
-              <button
-                onClick={() => openVisionModalWithMode('image_search')}
-                className="p-2 text-slate-400 hover:text-sky-600 rounded-xl hover:bg-slate-100 transition-colors"
-                title="Upload Image for Deep Learning Vision Analysis (Machines, Charts, Duplicate Scan)"
-              >
-                <Camera className="w-4 h-4" />
-              </button>
             </div>
 
             <textarea
@@ -676,7 +588,7 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
                 }
               }}
               placeholder="Ask anything (e.g. 'explain circuit board', 'what is in this chart', 'write code', or say 'hi')..."
-              className="w-full bg-white border border-slate-200 rounded-2xl pl-20 pr-14 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 shadow-xs resize-none custom-scrollbar"
+              className="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-14 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 shadow-xs resize-none custom-scrollbar"
             />
 
             <button
@@ -690,32 +602,10 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
         </div>
       </div>
 
-      {/* Right Sidebar: System Prompts & RAG Library */}
-      <div className="w-80 border-l border-slate-200/80 bg-white p-5 hidden xl:flex flex-col space-y-6 overflow-y-auto custom-scrollbar shrink-0 shadow-xs">
-        {/* Preset Prompts */}
-        <div className="space-y-3">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-            <span>Prompt Presets</span>
-          </h4>
-          <div className="space-y-2">
-            {promptPresets.map((p) => (
-              <div
-                key={p.id}
-                onClick={() => setInputPrompt(p.prompt)}
-                className="p-3 rounded-xl bg-slate-50 hover:bg-white hover:border-sky-300 border border-slate-200/80 cursor-pointer transition-all group shadow-xs"
-              >
-                <h5 className="text-xs font-bold text-slate-800 group-hover:text-sky-700 transition-colors">
-                  {p.title}
-                </h5>
-                <p className="text-[11px] text-slate-500 mt-1">{p.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
+      {/* Right Sidebar: Team RAG Library */}
+      <div className="w-80 border-l border-slate-200/80 bg-white p-5 hidden xl:flex flex-col space-y-4 overflow-y-auto custom-scrollbar shrink-0 shadow-xs">
         {/* Knowledge Base RAG Library Scoped by Team */}
-        <div className="space-y-3 pt-4 border-t border-slate-200">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-purple-600" />
@@ -779,13 +669,6 @@ Click the quick-launch chips above or upload an image/document below to begin!`,
         onClose={() => setIsUploadModalOpen(false)}
         onUploadSuccess={handleDocumentUploaded}
         defaultVaultId="my_team"
-      />
-
-      {/* Image Vision, Chart & Duplicate Detection Modal */}
-      <ImageVisionModal
-        isOpen={isVisionModalOpen}
-        onClose={() => setIsVisionModalOpen(false)}
-        initialMode={visionModalMode}
       />
     </div>
   );

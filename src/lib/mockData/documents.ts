@@ -263,6 +263,121 @@ All interface components enforce slate-50 light enterprise themes, high contrast
       },
     ],
   },
+  {
+    id: 'DOC-APEX-902148',
+    name: 'Vendor_Invoice_INV-902148_Apex_Infrastructure.pdf',
+    size: '1.8 MB',
+    type: 'pdf',
+    uploadedAt: getRelativeTimestamp(-2),
+    updatedAt: getRelativeTimestamp(-1),
+    vaultId: 'finance',
+    teamId: 'finance',
+    teamName: 'Finance & Risk Analytics',
+    uploadedBy: 'Tanisha Gupta',
+    uploadedByEmployeeId: 'EMP-SEC-002',
+    accessLevel: 'CONFIDENTIAL',
+    classification: 'CONFIDENTIAL',
+    securityLevel: 'Level 3 Finance',
+    status: 'READY',
+    pageCount: 2,
+    wordCount: 420,
+    sensitivityScore: 92,
+    tags: ['Vendor Invoice', 'Fraud Flagged', 'Total Mismatch', 'Offshore IBAN'],
+    summary: 'Cloud infrastructure vendor invoice flagged by Deep Learning U-Net for altered grand total ($145,000 vs $110,000 subtotal+tax) and routing to Swiss IBAN.',
+    content: `INVOICE #INV-902148
+VENDOR: Apex Cloud Infrastructure LLC
+TAX ID: 12-8891042
+IBAN: CH93000000001928374
+DATE: 2026-10-24
+DUE DATE: 2026-11-24
+SUBTOTAL: $100,000.00
+TAX (10%): $10,000.00
+GRAND TOTAL: $145,000.00
+NOTES: Payment due within 30 calendar days via SWIFT International Wire Transfer.`,
+    keyClauses: [
+      {
+        type: 'obligation',
+        title: 'Net 30 Payment Terms',
+        snippet: 'Payment due within 30 calendar days via SWIFT wire.',
+        pageOrSection: 'Invoice Footer',
+        riskLevel: 'HIGH',
+      },
+    ],
+    versions: [
+      {
+        version: '1.0.0',
+        updatedAt: getRelativeTimestamp(-2),
+        updatedBy: 'Tanisha Gupta',
+        updatedByEmployeeId: 'EMP-SEC-002',
+        changeNote: 'Uploaded for fraud inspection.',
+        size: '1.8 MB',
+      },
+    ],
+    accessHistory: [
+      {
+        id: 'acc-inv-01',
+        employeeId: 'EMP-SEC-002',
+        employeeName: 'Tanisha Gupta',
+        action: 'VIEW',
+        timestamp: getRelativeTimestamp(0, -1),
+        ipAddress: '192.168.1.104',
+        status: 'SUCCESS',
+      },
+    ],
+  },
+  {
+    id: 'DOC-CORD-995',
+    name: 'Verified_Receipt_REC-995201_Metropolitan_Data.pdf',
+    size: '1.2 MB',
+    type: 'pdf',
+    uploadedAt: getRelativeTimestamp(-3),
+    updatedAt: getRelativeTimestamp(-2),
+    vaultId: 'finance',
+    teamId: 'finance',
+    teamName: 'Finance & Risk Analytics',
+    uploadedBy: 'Charvi Sharma',
+    uploadedByEmployeeId: 'EMP-ENG-001',
+    accessLevel: 'PUBLIC',
+    classification: 'INTERNAL RESTRICTED',
+    securityLevel: 'Level 1 Standard',
+    status: 'READY',
+    pageCount: 1,
+    wordCount: 310,
+    sensitivityScore: 12,
+    tags: ['Verified Receipt', 'CORD Dataset', 'Legitimate', 'Math Verified'],
+    summary: 'Authentic metropolitan data receipt. ResNet18 and U-Net confirm 0 tampered regions; math checks show 100% subtotal + tax = total consistency.',
+    content: `RECEIPT #REC-995201
+VENDOR: Metropolitan Data Services
+TAX ID: 45-2019844
+DATE: 2026-10-18
+DUE DATE: 2026-10-18
+SUBTOTAL: $14,200.00
+TAX: $1,136.00
+GRAND TOTAL: $15,336.00
+NOTES: Paid in full via Corporate ACH Transfer.`,
+    keyClauses: [],
+    versions: [
+      {
+        version: '1.0.0',
+        updatedAt: getRelativeTimestamp(-3),
+        updatedBy: 'Charvi Sharma',
+        updatedByEmployeeId: 'EMP-ENG-001',
+        changeNote: 'Verified receipt recorded.',
+        size: '1.2 MB',
+      },
+    ],
+    accessHistory: [
+      {
+        id: 'acc-inv-02',
+        employeeId: 'EMP-ENG-001',
+        employeeName: 'Charvi Sharma',
+        action: 'VIEW',
+        timestamp: getRelativeTimestamp(0, -3),
+        ipAddress: '192.168.1.100',
+        status: 'SUCCESS',
+      },
+    ],
+  },
 ];
 
 export const sampleDocComparison: DocumentComparisonResult = {

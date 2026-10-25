@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { SynapseAIEngine } from '@/lib/ai/synapseEngine';
+import { executeDocumentFraudAIModel } from '@/lib/ai/fraudModelClient';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { action, transactions, documents, document } = body;
+    const { action, transactions, documents, document, imageBase64 } = body;
 
     if (action === 'inspect_document' && document) {
-      const report = await SynapseAIEngine.analyzeDocumentFraud(document);
+      const report = await executeDocumentFraudAIModel(document, imageBase64);
       return NextResponse.json({
         success: true,
         report,

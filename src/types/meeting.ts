@@ -43,6 +43,9 @@ export interface ActionItem {
   taskSummary?: string;
   spokenText?: string;
   notes?: ActionItemNote[];
+  confidence?: number;
+  confirmationStatus?: 'CONFIRMED' | 'NEEDS_REVIEW' | 'AUTO_ASSIGNED';
+  supportingEvidence?: string;
 }
 
 export interface MinutesOfMeeting {

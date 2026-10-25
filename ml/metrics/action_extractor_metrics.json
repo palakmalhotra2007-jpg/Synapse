@@ -1,0 +1,49 @@
+{
+  "model_type": "FLAN-T5-small (Task & Action Extractor)",
+  "base_model": "C:\\Users\\Pankaj Malhotra\\Downloads\\Synapse\\ml\\models_cache\\flan-t5-small",
+  "datasets": "AMI Meeting Corpus + Synthetic Meeting-to-Task",
+  "training_time_seconds": 26.19,
+  "epochs": 3,
+  "training_logs": [
+    {
+      "epoch": 1,
+      "train_loss": 2.6131,
+      "val_loss": 2.0281
+    },
+    {
+      "epoch": 2,
+      "train_loss": 1.9719,
+      "val_loss": 1.8313
+    },
+    {
+      "epoch": 3,
+      "train_loss": 1.7696,
+      "val_loss": 1.7409
+    }
+  ],
+  "baseline_metrics": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1_score": 0.0,
+    "assignee_accuracy": 0.0,
+    "deadline_accuracy": 0.0,
+    "total_gold_tasks": 1,
+    "total_predicted_tasks": 1,
+    "matched_tasks": 0
+  },
+  "finetuned_metrics": {
+    "precision": 100.0,
+    "recall": 100.0,
+    "f1_score": 100.0,
+    "assignee_accuracy": 0.0,
+    "deadline_accuracy": 0.0,
+    "total_gold_tasks": 1,
+    "total_predicted_tasks": 1,
+    "matched_tasks": 1
+  },
+  "f1_improvement": 100.0,
+  "sample_prediction": {
+    "raw_input": "extract action items from meeting: Let's review prototype feedback. Did the user study reveal any navigation blockers? Yes, elderly participants struggled with menu nesting depth. We must flatten the navigation hierarchy. Agreed. UI lead, please redesign the main menu with a single-tier access grid by next Wednesday.",
+    "prediction": "Extract action items from meeting: Lets review prototype feedback. Did the user study reveal any navigation blockers? Yes, elderly participants struggled with menu nesting depth. We must flatten the navigation hierarchy. Agreed. UI lead, please redesign the main menu with a single-tier access grid by next Wednesday."
+  }
+}

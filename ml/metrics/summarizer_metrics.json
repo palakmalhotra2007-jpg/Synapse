@@ -1,0 +1,48 @@
+{
+  "model_type": "FLAN-T5-small (Meeting Summarizer)",
+  "base_model": "C:\\Users\\Pankaj Malhotra\\Downloads\\Synapse\\ml\\models_cache\\flan-t5-small",
+  "dataset_trained": "MeetingBank & QMSum",
+  "training_time_seconds": 34.76,
+  "epochs": 3,
+  "training_logs": [
+    {
+      "epoch": 1,
+      "train_loss": 3.7336,
+      "val_loss": 2.3925
+    },
+    {
+      "epoch": 2,
+      "train_loss": 2.9755,
+      "val_loss": 2.3674
+    },
+    {
+      "epoch": 3,
+      "train_loss": 2.5775,
+      "val_loss": 2.3571
+    }
+  ],
+  "baseline_metrics": {
+    "rouge1": 45.83,
+    "rouge2": 26.09,
+    "rougeL": 45.83,
+    "rougeLsum": 45.83
+  },
+  "finetuned_metrics": {
+    "rouge1": 20.0,
+    "rouge2": 4.17,
+    "rougeL": 12.0,
+    "rougeLsum": 12.0
+  },
+  "rouge_gains": {
+    "rouge1_gain": -25.83,
+    "rouge2_gain": -21.92,
+    "rougeL_gain": -33.83
+  },
+  "sample_evaluations": [
+    {
+      "ground_truth": "The team agreed that using VAD pre-filtering with word-level timestamps reduces Whisper's WER to 6.2% and decided to preserve millisecond timestamps in all meeting transcripts.",
+      "pretrained_baseline_output": "Lead Architect: We will deploy the VAD pre-filter and preserve millisecond timestamp boundaries in all meeting output logs.",
+      "finetuned_model_output": "Lead Architect: Overlapping speech segments cause a fifteen percent degradation in WER if we do not use speaker diarization pre-filtering."
+    }
+  ]
+}

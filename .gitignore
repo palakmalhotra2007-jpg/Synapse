@@ -12,3 +12,45 @@ build/
 
 *.log
 *.tsbuildinfo
+
+# Python & ML Checkpoints (avoid GitHub 100MB limit)
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+ml/models_cache/
+ml/fraud_checkpoints/*.pt
+ml/facial_recognition/models/*.pt
+*.pt
+*.bin
+*.onnx
+# Dependencies and build files
+node_modules/
+.next/
+
+# Training datasets (permanently removed - use preparation scripts to regenerate)
+ml/fraud_data/dataset/
+ml/facial_recognition/datasets/
+ml/data/processed/
+ml/data/raw/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local ML model cache
+ml/models_cache/
+# Synapse ML models and training data
+ml/**/*.safetensors
+ml/**/*.pt
+ml/models_cache/
+ml/fraud_data/dataset/
+ml/facial_recognition/datasets/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Secrets
+.env
+.env.local

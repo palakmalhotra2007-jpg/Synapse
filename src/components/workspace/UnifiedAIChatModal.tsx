@@ -54,12 +54,12 @@ interface UnifiedAIChatModalProps {
 
 const presetTestImages = [
   {
-    id: 'preset-fpga',
-    title: 'Radiona ULX3S FPGA Hardware Board.svg',
-    category: 'Radiona ULX3S FPGA',
-    mode: 'image_search' as const,
-    url: '/test-assets/hardware_fpga_board.svg',
-    prompt: 'Identify all hardware components visible on this board.',
+    id: 'preset-chart',
+    title: 'H1 2026 Enterprise Revenue & Telemetry.svg',
+    category: 'Revenue Growth Chart',
+    mode: 'chart_understanding' as const,
+    url: '/test-assets/q2_revenue_chart.svg',
+    prompt: 'Explain this graph and calculate revenue growth velocity.',
   },
   {
     id: 'preset-architecture',
@@ -68,14 +68,6 @@ const presetTestImages = [
     mode: 'image_search' as const,
     url: '/test-assets/cloud_architecture_diagram.svg',
     prompt: 'Analyze this topology diagram and list all microservices and database nodes.',
-  },
-  {
-    id: 'preset-chart',
-    title: 'H1 2026 Enterprise Revenue & Telemetry.svg',
-    category: 'Revenue Growth Chart',
-    mode: 'chart_understanding' as const,
-    url: '/test-assets/q2_revenue_chart.svg',
-    prompt: 'Explain this graph and calculate revenue growth velocity.',
   },
   {
     id: 'preset-dup',
@@ -116,13 +108,12 @@ export const UnifiedAIChatModal: React.FC<UnifiedAIChatModalProps> = ({
     {
       id: 'm-init',
       role: 'assistant',
-      content: `Hello ${user?.displayName?.split(' ')[0] || ''}. I am your Synapse Multi-Modal AI Assistant.
+      content: `Hello ${user?.displayName?.split(' ')[0] || ''}. I am your Synapse Enterprise AI Assistant.
 
 I can assist you with:
 - Universal Document RAG: Ask questions grounded in company PDFs, contracts, and datasets.
-- Image Knowledge Search: Inspect machine components and hardware circuits.
-- Chart & Graph Understanding: Parse bar graphs, line charts, and metric growth rates.
-- Duplicate & Tamper Detection: Detect modified signatures and image duplicates.
+- Chart & Graph Analytics: Parse bar graphs, line charts, and metric growth rates.
+- Duplicate & Tamper Detection: Detect modified signatures, invoices, and image duplicates.
 
 How can I help you today?`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -527,7 +518,7 @@ How can I help you today?`,
               <button
                 onClick={() => {
                   setVisionMode('image_search');
-                  setVisionPrompt('What components are visible on this hardware board?');
+                  setVisionPrompt('Analyze this system topology and microservices diagram.');
                   dispatchCompanionGuide('image_search', { speak: true });
                 }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${

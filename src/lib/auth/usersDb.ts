@@ -124,8 +124,8 @@ export const INITIAL_USERS: StoredUser[] = [
     passkeys: [
       {
         id: 'pk-02',
-        name: 'Windows Hello Fingerprint Sensor',
-        credentialId: 'cred-win-fingerprint-tanisha-901',
+        name: 'Windows Hello Biometric Key',
+        credentialId: 'cred-win-hello-tanisha-901',
         publicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEB...',
         counter: 32,
         createdAt: '2026-03-10T09:00:00Z',
@@ -386,14 +386,14 @@ export function createNewTeam(teamData: {
 export function getStoredUsers(): StoredUser[] {
   if (typeof window === 'undefined') return INITIAL_USERS;
   try {
-    const data = localStorage.getItem('synapse_users_db_v5');
+    const data = localStorage.getItem('synapse_users_db_v6');
     if (data) {
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
     }
-    localStorage.setItem('synapse_users_db_v5', JSON.stringify(INITIAL_USERS));
+    localStorage.setItem('synapse_users_db_v6', JSON.stringify(INITIAL_USERS));
   } catch (err) {
     console.warn('LocalStorage error reading users:', err);
   }
@@ -403,15 +403,41 @@ export function getStoredUsers(): StoredUser[] {
 export function saveStoredUsers(users: StoredUser[]): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem('synapse_users_db_v5', JSON.stringify(users));
+    localStorage.setItem('synapse_users_db_v6', JSON.stringify(users));
   } catch (err) {
     console.warn('LocalStorage error saving users:', err);
   }
 }
 
-// Biometric Enrollment & DB Storage
+// Helper to compute Euclidean distance between two 128-dimensional face embedding vectors
+export function computeFaceEuclideanDistance(
+  desc1: number[] | Float32Array,
+  desc2: number[] | Float32Array
+): number {
+  let sum = 0;
+  const len = Math.min(desc1.length, desc2.length);
+  for (let i = 0; i < len; i++) {
+    const diff = desc1[i] - desc2[i];
+    sum += diff * diff;
+  }
+  return Math.sqrt(sum);
+}
+
+export function parseStoredDescriptor(raw: string | undefined): number[] | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length >= 64) {
+      return parsed;
+    }
+  } catch (e) {}
+  return null;
+}
+
+// Biometric Face ID Enrollment & DB Storage
 export function registerFaceIdForUser(
   email: string,
+  descriptorData?: number[] | Float32Array | string,
   deviceCamera: string = 'Integrated WebCam'
 ): { success: boolean; user?: StoredUser; error?: string } {
   const users = getStoredUsers();
@@ -420,11 +446,20 @@ export function registerFaceIdForUser(
     return { success: false, error: 'Employee user account not found in database.' };
   }
 
+  let serializedDescriptor = '';
+  if (descriptorData) {
+    if (descriptorData instanceof Float32Array || Array.isArray(descriptorData)) {
+      serializedDescriptor = JSON.stringify(Array.from(descriptorData));
+    } else if (typeof descriptorData === 'string') {
+      serializedDescriptor = descriptorData;
+    }
+  }
+
   const faceIdData = {
     id: `face-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     enrolledAt: new Date().toISOString(),
-    vectorHash: `VEC-HASH-${users[index].employeeId}-${Date.now()}`,
-    descriptor: `${users[index].displayName} Retinal Mesh Vector Descriptor`,
+    vectorHash: `VEC-HASH-${users[index].employeeId}-${Date.now().toString(16).toUpperCase()}`,
+    descriptor: serializedDescriptor || `${users[index].displayName} Retinal Mesh Vector Descriptor`,
     deviceCamera,
   };
 
@@ -437,45 +472,120 @@ export function registerFaceIdForUser(
     actorName: users[index].displayName,
     actorRole: users[index].rbacRole,
     targetResource: 'Biometric Face ID Vault DB',
-    action: 'Enrolled & stored facial geometry vector descriptor in DB',
+    action: 'Enrolled & stored facial 128-D vector embedding in DB',
     status: 'SUCCESS',
     ipAddress: '192.168.1.100',
-    details: `Face Vector Hash: ${faceIdData.vectorHash}`,
+    details: `Face Vector Hash: ${faceIdData.vectorHash} (${serializedDescriptor ? '128-D Embedding Vector' : 'Mesh Signature'})`,
   });
 
   return { success: true, user: users[index] };
 }
 
-export function registerPasskeyForUser(
+// Biometric Verification Against Specific User in DB
+export function verifyFaceDescriptorForUser(
   email: string,
-  passkey: PasskeyCredential
-): { success: boolean; user?: StoredUser; error?: string } {
+  liveDescriptor: number[] | Float32Array,
+  threshold: number = 0.52
+): {
+  success: boolean;
+  matched: boolean;
+  confidence: number;
+  distance: number;
+  user?: StoredUser;
+  error?: string;
+  isEnrolled?: boolean;
+} {
   const users = getStoredUsers();
-  const index = users.findIndex((u) => u.email.toLowerCase() === email.trim().toLowerCase());
-  if (index === -1) {
-    return { success: false, error: 'Employee user account not found in database.' };
+  const user = users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+  if (!user) {
+    return { success: false, matched: false, confidence: 0, distance: 1.0, error: 'Employee account not found in database.' };
   }
 
-  const existingPasskeys = users[index].passkeys || [];
-  users[index].passkeys = [...existingPasskeys, passkey];
-  saveStoredUsers(users);
+  if (!user.faceId || !user.faceId.descriptor) {
+    return {
+      success: false,
+      matched: false,
+      confidence: 0,
+      distance: 1.0,
+      isEnrolled: false,
+      error: `No Face ID signature registered in database for ${user.displayName}. Please enroll your face first.`,
+    };
+  }
 
-  addAuditLogEntry({
-    eventType: 'passkey_registration',
-    actorEmployeeId: users[index].employeeId,
-    actorName: users[index].displayName,
-    actorRole: users[index].rbacRole,
-    targetResource: 'WebAuthn Fingerprint Hardware Vault DB',
-    action: 'Registered & stored FIDO2 Fingerprint Passkey credential in DB',
-    status: 'SUCCESS',
-    ipAddress: '192.168.1.100',
-    details: `Credential ID: ${passkey.credentialId}, Device: ${passkey.name}`,
-  });
+  const storedDesc = parseStoredDescriptor(user.faceId.descriptor);
+  if (!storedDesc) {
+    return {
+      success: false,
+      matched: false,
+      confidence: 0,
+      distance: 1.0,
+      isEnrolled: false,
+      error: `Face ID profile for ${user.displayName} requires a live camera enrollment scan before verification.`,
+    };
+  }
 
-  return { success: true, user: users[index] };
+  const distance = computeFaceEuclideanDistance(liveDescriptor, storedDesc);
+  const matched = distance <= threshold;
+  const confidence = Math.max(5, Math.min(99, Math.round((1 - (distance / 0.7)) * 100)));
+
+  return {
+    success: true,
+    matched,
+    confidence,
+    distance: Math.round(distance * 1000) / 1000,
+    user: matched ? user : undefined,
+    error: matched ? undefined : `Face biometric mismatch (Distance: ${distance.toFixed(3)} > ${threshold}). Access denied.`,
+  };
 }
 
-// Biometric Verification Against DB
+// Auto-Identify Person Across All Enrolled Employees in Database
+export function identifyUserByFaceDescriptor(
+  liveDescriptor: number[] | Float32Array,
+  threshold: number = 0.52
+): {
+  matched: boolean;
+  confidence: number;
+  distance: number;
+  user?: StoredUser;
+  error?: string;
+} {
+  const users = getStoredUsers();
+  let bestMatchUser: StoredUser | null = null;
+  let lowestDistance = 999;
+
+  for (const u of users) {
+    if (!u.faceId?.descriptor) continue;
+    const stored = parseStoredDescriptor(u.faceId.descriptor);
+    if (!stored) continue;
+
+    const dist = computeFaceEuclideanDistance(liveDescriptor, stored);
+    if (dist < lowestDistance) {
+      lowestDistance = dist;
+      bestMatchUser = u;
+    }
+  }
+
+  if (bestMatchUser && lowestDistance <= threshold) {
+    const confidence = Math.max(5, Math.min(99, Math.round((1 - (lowestDistance / 0.7)) * 100)));
+    return {
+      matched: true,
+      confidence,
+      distance: Math.round(lowestDistance * 1000) / 1000,
+      user: bestMatchUser,
+    };
+  }
+
+  return {
+    matched: false,
+    confidence: lowestDistance === 999 ? 0 : Math.max(5, Math.min(45, Math.round((1 - (lowestDistance / 0.7)) * 100))),
+    distance: lowestDistance === 999 ? 1.0 : Math.round(lowestDistance * 1000) / 1000,
+    error: lowestDistance === 999
+      ? 'No enrolled face profiles found in the enterprise database. Please enroll your face first.'
+      : `Face does not match any registered employee (Closest distance: ${lowestDistance.toFixed(3)} > ${threshold}). Access denied.`,
+  };
+}
+
+// Legacy verification check (checks presence of face enrollment)
 export function verifyFaceIdForUser(
   email: string
 ): { success: boolean; user?: StoredUser; error?: string; isEnrolled?: boolean } {
@@ -509,7 +619,7 @@ export function verifyPasskeyForUser(
     return {
       success: false,
       isEnrolled: false,
-      error: `No Fingerprint Touch ID passkey registered in database for ${user.displayName}. Please register your fingerprint passkey first.`,
+      error: `No WebAuthn passkey registered in database for ${user.displayName}. Please register your passkey first.`,
     };
   }
 

@@ -105,11 +105,35 @@ export interface DocumentFraudReport {
   teamName: string;
   overallTamperScore: number; // 0 - 100 (high is risky)
   verdict: 'LEGITIMATE' | 'SUSPICIOUS' | 'TAMPERED_FRAUD';
+  reviewStatus?: 'CONFIRMED_FRAUD' | 'NEEDS_REVIEW' | 'CLEARED';
   tamperIndicators: DocumentTamperIndicator[];
   extractedAmountUSD?: number;
   extractedEntityName?: string;
   extractedTaxId?: string;
   extractedIBAN?: string;
+  extractedInvoiceNumber?: string;
+  extractedInvoiceDate?: string;
+  extractedDueDate?: string;
+  extractedSubtotalUSD?: number;
+  extractedTaxUSD?: number;
+  ocrReconciliation?: {
+    subtotal: number;
+    tax: number;
+    expected_total: number;
+    declared_total: number;
+    variance: number;
+    is_balanced: boolean;
+  };
+  modelOutputs?: {
+    classifierProbabilityTampered: number;
+    localizerTamperAreaRatio: number;
+    tamperRegionsCount: number;
+    tamperRegions?: Array<{
+      box_256: number[];
+      confidence: number;
+      location_description: string;
+    }>;
+  };
   forensicNotes: string[];
   scanTimestamp: string;
 }

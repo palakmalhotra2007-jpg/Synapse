@@ -50,9 +50,11 @@ import { SynapseAIEngine } from '@/lib/ai/synapseEngine';
 import { addAuditLogEntry } from '@/lib/auth/usersDb';
 import { useAuth } from '@/lib/firebase/authContext';
 import { generateFraudReport } from '@/lib/utils/pdfGenerator';
+import { DocumentFraudInspector } from '@/components/fraud/DocumentFraudInspector';
 
 export default function FraudAnalysisPage() {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'document_inspector' | 'ledger_forensics'>('document_inspector');
   const [transactions, setTransactions] = useState<TransactionRecord[]>(sampleTransactions);
   const [summary, setSummary] = useState<FraudAnalysisSummary>(sampleFraudSummary);
   const [selectedTxn, setSelectedTxn] = useState<TransactionRecord | null>(null);
@@ -394,37 +396,78 @@ TXN-902155,ACC-OPS-302 (Facility Management),ACC-SUPPLY-501 (Global Real Estate)
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-rose-600 uppercase tracking-wider mb-1">
             <ShieldAlert className="w-4 h-4 text-rose-500" />
-            <span>Anomaly Detection & AML Surveillance</span>
+            <span>Enterprise Fraud & AML Intelligence</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Omni Fraud Analysis & Ledger Forensics
+            Document Fraud & Ledger Surveillance
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Analyze wire transactions, detect explainable behavioral anomalies, and manage full forensic investigation lifecycle.
+            Deep learning document forgery localization (ResNet18 + U-Net) paired with real-time wire anomaly surveillance.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button onClick={() => setIsUploadModalOpen(true)} variant="primary" size="sm" leftIcon={<UploadCloud className="w-4 h-4" />}>
-            Upload CSV / XLSX Ledger
-          </Button>
+        {activeTab === 'ledger_forensics' && (
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Button onClick={() => setIsUploadModalOpen(true)} variant="primary" size="sm" leftIcon={<UploadCloud className="w-4 h-4" />}>
+              Upload CSV / XLSX Ledger
+            </Button>
 
-          <Button onClick={downloadDemoExcelCSV} variant="secondary" size="sm" leftIcon={<FileSpreadsheet className="w-4 h-4 text-emerald-600" />}>
-            Download Demo Excel/CSV
-          </Button>
+            <Button onClick={downloadDemoExcelCSV} variant="secondary" size="sm" leftIcon={<FileSpreadsheet className="w-4 h-4 text-emerald-600" />}>
+              Download Demo Excel/CSV
+            </Button>
 
-          <Button onClick={loadDemoExcelDataset} variant="outline" size="sm" leftIcon={<Zap className="w-4 h-4 text-amber-500" />}>
-            Load Demo Ledger
-          </Button>
+            <Button onClick={loadDemoExcelDataset} variant="outline" size="sm" leftIcon={<Zap className="w-4 h-4 text-amber-500" />}>
+              Load Demo Ledger
+            </Button>
 
-          <Button onClick={exportFraudPDFReport} variant="outline" size="sm" leftIcon={<Download className="w-4 h-4" />}>
-            Export Fraud PDF Report
-          </Button>
-        </div>
+            <Button onClick={exportFraudPDFReport} variant="outline" size="sm" leftIcon={<Download className="w-4 h-4" />}>
+              Export Fraud PDF Report
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Overview Real Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      {/* Primary Module Navigation Tabs */}
+      <div className="flex border-b border-slate-200 gap-2">
+        <button
+          onClick={() => setActiveTab('document_inspector')}
+          className={`flex items-center gap-2.5 px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all ${
+            activeTab === 'document_inspector'
+              ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50 rounded-t-lg'
+              : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          <span>Document Fraud & Tamper Inspector</span>
+          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-indigo-100 text-indigo-700 uppercase tracking-wider">
+            ResNet18 + U-Net AI
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ledger_forensics')}
+          className={`flex items-center gap-2.5 px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all ${
+            activeTab === 'ledger_forensics'
+              ? 'border-sky-600 text-sky-700 bg-sky-50/50 rounded-t-lg'
+              : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>Transaction Surveillance & AML</span>
+          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-slate-100 text-slate-600 uppercase tracking-wider">
+            Ledger Forensics
+          </span>
+        </button>
+      </div>
+
+      {/* Tab 1 Content: Document Fraud Inspector */}
+      {activeTab === 'document_inspector' && <DocumentFraudInspector />}
+
+      {/* Tab 2 Content: Ledger Forensics */}
+      {activeTab === 'ledger_forensics' && (
+        <div className="space-y-6">
+          {/* Overview Real Metrics Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <Card className="p-4 space-y-1.5">
           <span className="text-[11px] text-slate-500 block">Total Audited Volume</span>
           <span className="text-xl font-bold text-slate-900 block">{formatCurrency(summary.totalVolumeUSD)}</span>
@@ -630,6 +673,8 @@ TXN-902155,ACC-OPS-302 (Facility Management),ACC-SUPPLY-501 (Global Real Estate)
           </table>
         </div>
       </Card>
+    </div>
+  )}
 
       {/* Investigation Drawer / Modal */}
       {isInvestigateOpen && selectedTxn && (

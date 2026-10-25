@@ -86,6 +86,7 @@ export type AuditEventType =
   | 'vault_access'
   | 'vault_denial'
   | 'transaction_investigation'
+  | 'document_fraud_review'
   | 'permission_change'
   | 'session_revocation';
 

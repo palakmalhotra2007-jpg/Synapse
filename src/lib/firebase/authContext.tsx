@@ -13,6 +13,7 @@ import {
   removeUserPasskey,
   revokeUserSession as revokeUserSessionDb,
   addAuditLogEntry,
+  registerFaceIdForUser,
 } from '@/lib/auth/usersDb';
 import {
   registerWebAuthnPasskey,
@@ -39,6 +40,8 @@ interface AuthContextType {
   setExecutionMode: (mode: ExecutionMode) => void;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginWithPasskey: (email?: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithFaceId: (matchedUser: UserProfile) => void;
+  enrollFaceId: (descriptor: number[] | Float32Array, cameraDevice?: string) => Promise<{ success: boolean; error?: string }>;
   registerPasskey: (name?: string) => Promise<{ success: boolean; passkey?: PasskeyCredential; error?: string }>;
   removePasskey: (passkeyId: string) => Promise<{ success: boolean }>;
   revokeSession: (sessionId: string) => Promise<{ success: boolean }>;
@@ -67,6 +70,8 @@ const AuthContext = createContext<AuthContextType>({
   setExecutionMode: () => {},
   login: async () => ({ success: false }),
   loginWithPasskey: async () => ({ success: false }),
+  loginWithFaceId: () => {},
+  enrollFaceId: async () => ({ success: false }),
   registerPasskey: async () => ({ success: false }),
   removePasskey: async () => ({ success: false }),
   revokeSession: async () => ({ success: false }),
@@ -83,7 +88,7 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<UserSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isPlatformBiometricAvailable, setIsPlatformBiometricAvailable] = useState(false);
   const [executionMode, setExecutionModeState] = useState<ExecutionMode>('preset');
 
@@ -166,18 +171,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return newSession;
   };
 
-  // Always open authentication page when opening the website
+  // Check and restore authentication session on mount
   useEffect(() => {
-    setUser(null);
-    setSession(null);
     try {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('synapse_auth_user');
-        localStorage.removeItem('synapse_auth_session');
-        sessionStorage.removeItem('synapse-authenticated');
+        const savedUser = localStorage.getItem('synapse_auth_user');
+        const savedSession = localStorage.getItem('synapse_auth_session');
+        if (savedUser && savedSession) {
+          setUser(JSON.parse(savedUser));
+          setSession(JSON.parse(savedSession));
+        } else {
+          setUser(null);
+          setSession(null);
+        }
       }
     } catch (err) {
-      console.warn('Session reset error:', err);
+      console.warn('Session init error:', err);
+      setUser(null);
+      setSession(null);
     } finally {
       setLoading(false);
     }
@@ -254,6 +265,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: err.message || 'Passkey authentication error' };
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loginWithFaceId = (matchedUser: UserProfile) => {
+    createSession(matchedUser, 'PLATFORM_BIOMETRIC');
+
+    addAuditLogEntry({
+      eventType: 'login',
+      actorEmployeeId: matchedUser.employeeId,
+      actorName: matchedUser.displayName,
+      actorRole: matchedUser.rbacRole,
+      targetResource: 'Biometric Face ID Neural Scanner',
+      action: 'Biometric Face ID Scan Verified Login',
+      status: 'SUCCESS',
+      ipAddress: '192.168.1.100',
+      details: `128-D Euclidean vector verified against enrolled database record for ${matchedUser.displayName}.`,
+    });
+  };
+
+  const enrollFaceId = async (
+    descriptor: number[] | Float32Array,
+    cameraDevice: string = 'Integrated WebCam'
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!user) return { success: false, error: 'You must be logged in to enroll your Face ID.' };
+
+    try {
+      const res = registerFaceIdForUser(user.email, descriptor, cameraDevice);
+      if (!res.success || !res.user) {
+        return { success: false, error: res.error || 'Failed to enroll Face ID.' };
+      }
+
+      const { passwordHash: _, ...profile } = res.user;
+      setUser(profile);
+      try {
+        localStorage.setItem('synapse_auth_user', JSON.stringify(profile));
+      } catch (e) {}
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Face enrollment error.' };
     }
   };
 
@@ -445,6 +496,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setExecutionMode,
         login,
         loginWithPasskey,
+        loginWithFaceId,
+        enrollFaceId,
         registerPasskey,
         removePasskey,
         revokeSession,

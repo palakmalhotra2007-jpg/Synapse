@@ -12,15 +12,18 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
+  Scan,
 } from 'lucide-react';
 import { useAuth } from '@/lib/firebase/authContext';
 import { TEAMS_LIST } from '@/lib/auth/usersDb';
 import { Button } from '@/components/ui/Button';
 import { TeamId, UserRbacRole } from '@/types/dashboard';
+import { FaceRecognitionModal } from './FaceRecognitionModal';
 
 export const AuthPortal: React.FC = () => {
   const { login, register } = useAuth();
   const [tab, setTab] = useState<'login' | 'register'>('login');
+  const [isFaceModalOpen, setIsFaceModalOpen] = useState(false);
 
   // Form states
   const [email, setEmail] = useState('charvi@synapse-ai.io');
@@ -318,12 +321,45 @@ export const AuthPortal: React.FC = () => {
               {tab === 'login' ? 'Sign In to Workspace' : 'Create Account'}
             </Button>
 
+            {tab === 'login' && (
+              <>
+                <div className="relative flex py-1 items-center my-1">
+                  <div className="flex-grow border-t border-slate-200" />
+                  <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    or biometric verification
+                  </span>
+                  <div className="flex-grow border-t border-slate-200" />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsFaceModalOpen(true)}
+                  className="w-full py-2.5 font-bold border-sky-300 text-sky-700 hover:bg-sky-50 flex items-center justify-center gap-1.5 text-xs"
+                >
+                  <Scan className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Scan Face ID Biometrics</span>
+                </Button>
+              </>
+            )}
+
             {/* Security Badge Footer */}
             <div className="flex items-center justify-center gap-1.5 pt-2 text-[11px] text-slate-400 font-medium">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
               <span>AES-256 Vault Encrypted</span>
             </div>
           </form>
+
+          {/* Biometric Face Recognition Scanner Modal */}
+          <FaceRecognitionModal
+            isOpen={isFaceModalOpen}
+            onClose={() => setIsFaceModalOpen(false)}
+            mode="login"
+            targetEmail={email}
+            onSuccess={(user) => {
+              setSuccessMessage(`Face Biometrics Verified: Welcome back, ${user?.displayName || 'Specialist'}! Entering Workspace...`);
+            }}
+          />
         </div>
       </div>
     </div>

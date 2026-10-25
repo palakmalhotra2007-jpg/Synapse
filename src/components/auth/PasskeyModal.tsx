@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import {
   KeyRound,
   ShieldCheck,
-  Fingerprint,
   CheckCircle2,
   AlertCircle,
   Loader2,
@@ -83,7 +82,7 @@ export const PasskeyModal: React.FC<PasskeyModalProps> = ({
         {/* Hardware Status Banner */}
         <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
           <div className="p-2 rounded-lg bg-sky-50 text-sky-600 border border-sky-100 shrink-0 mt-0.5">
-            <Fingerprint className="w-5 h-5" />
+            <KeyRound className="w-5 h-5" />
           </div>
           <div className="space-y-1 text-xs">
             <div className="flex items-center gap-2">

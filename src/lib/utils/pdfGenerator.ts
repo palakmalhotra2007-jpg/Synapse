@@ -232,9 +232,9 @@ export function generateMeetingReport(data: {
 
     yPos += 6;
 
-    const tableData = data.actionItems.map((item) => [
-      cleanPdfText(item.title),
-      cleanPdfText(item.assignee),
+    const tableData = data.actionItems.map((item: any) => [
+      cleanPdfText(item.title) + (item.supportingEvidence ? `\n[Evidence: "${cleanPdfText(item.supportingEvidence)}"]` : ''),
+      cleanPdfText(item.assignee) + (item.confidence ? ` (${item.confidence}%)` : ''),
       cleanPdfText(item.deadline),
       cleanPdfText(item.priority),
       cleanPdfText(item.status),

@@ -66,7 +66,7 @@ export default function MeetingIntelligencePage() {
   }, []);
   const [activeTab, setActiveTab] = useState<'mom' | 'tasks' | 'transcript' | 'participants'>('mom');
   const [transcriptSearch, setTranscriptSearch] = useState('');
-  const [taskFilterMode, setTaskFilterMode] = useState<'my_tasks' | 'all'>('my_tasks');
+  const [taskFilterMode, setTaskFilterMode] = useState<'my_tasks' | 'all'>('all');
 
   // Selected Employee Profile Drawer State
   const [selectedProfileEmployee, setSelectedProfileEmployee] = useState<UserProfile | null>(null);
@@ -144,6 +144,23 @@ export default function MeetingIntelligencePage() {
         if (item.id === id) {
           const nextStatus: 'PENDING' | 'COMPLETED' = item.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
           return { ...item, status: nextStatus };
+        }
+        return item;
+      }),
+    };
+    syncActiveSession(nextMom);
+  };
+
+  const handleConfirmAssignment = (id: string) => {
+    const nextMom = {
+      ...momData,
+      actionItems: momData.actionItems.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            confirmationStatus: 'CONFIRMED' as const,
+            confidence: Math.max(item.confidence || 88, 95),
+          };
         }
         return item;
       }),
@@ -268,7 +285,10 @@ export default function MeetingIntelligencePage() {
       const hasUrlInText = isYouTubeUrl(uploadMeetingText) || uploadMeetingText.trim().startsWith('http://') || uploadMeetingText.trim().startsWith('https://');
       
       if (meetingInputMode === 'link' || uploadMeetingUrl.trim() || hasUrlInText) {
-        const targetUrl = uploadMeetingUrl.trim() || uploadMeetingText.trim() || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        const targetUrl = uploadMeetingUrl.trim() || (hasUrlInText ? uploadMeetingText.trim() : '');
+        if (!targetUrl) {
+          throw new Error('Please enter a valid meeting recording URL or YouTube link.');
+        }
         
         setProcessingStage('Connecting to YouTube / Web Link Gateway...');
         await new Promise((r) => setTimeout(r, 400));
@@ -323,9 +343,29 @@ export default function MeetingIntelligencePage() {
       setProcessingStage('Transcribing Multi-Speaker Audio Streams...');
       await new Promise((r) => setTimeout(r, 500));
 
-      setProcessingStage('Synthesizing MoM & Executive Action Items...');
+      setProcessingStage('Synthesizing MoM via Fine-Tuned FLAN-T5 & Entity Matcher...');
       const payloadText = uploadMeetingText || (uploadMeetingFile ? await uploadMeetingFile.text().catch(() => '') : '');
-      const generatedMom = await SynapseAIEngine.processMeetingSession(payloadText, participants);
+
+      let generatedMom: MinutesOfMeeting;
+      try {
+        const aiResponse = await fetch('/api/meetings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            transcriptText: payloadText,
+            participants,
+          }),
+        });
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          generatedMom = aiData.mom || (await SynapseAIEngine.processMeetingSession(payloadText, participants));
+        } else {
+          generatedMom = await SynapseAIEngine.processMeetingSession(payloadText, participants);
+        }
+      } catch (err) {
+        console.warn('Backend inference unavailable, using dynamic NLP client engine:', err);
+        generatedMom = await SynapseAIEngine.processMeetingSession(payloadText, participants);
+      }
 
       setProcessingStage('Finalizing Meeting Session...');
       await new Promise((r) => setTimeout(r, 300));
@@ -811,8 +851,21 @@ export default function MeetingIntelligencePage() {
 
               if (displayedItems.length === 0) {
                 return (
-                  <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                    <p className="text-xs text-slate-500 font-medium">No action items assigned to you in this session.</p>
+                  <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-3">
+                    <p className="text-xs text-slate-500 font-medium">
+                      No action items assigned to you ({user?.displayName || 'current employee'}) in this meeting.
+                    </p>
+                    {momData.actionItems.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setTaskFilterMode('all')}
+                        className="text-xs"
+                      >
+                        Show All Team Deliverables ({momData.actionItems.length})
+                      </Button>
+                    )}
                   </div>
                 );
               }
@@ -863,6 +916,16 @@ export default function MeetingIntelligencePage() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
+                        {item.confidence !== undefined && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            item.confidence >= 85
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            <Sparkles className="w-3 h-3 text-sky-500" />
+                            {item.confidence}% Conf
+                          </span>
+                        )}
                         <Badge variant={item.priority === 'HIGH' ? 'rose' : item.priority === 'MEDIUM' ? 'amber' : 'slate'} size="sm">
                           {item.priority}
                         </Badge>
@@ -871,6 +934,35 @@ export default function MeetingIntelligencePage() {
                         </Badge>
                       </div>
                     </div>
+
+                    {/* Ambiguous Assignee Needs Review Flag */}
+                    {item.confirmationStatus === 'NEEDS_REVIEW' && (
+                      <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-amber-50/90 border border-amber-200 text-amber-900 text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span><strong>Review Flag:</strong> Assignee was matched with lower confidence ({item.confidence}%). Please confirm or reassign.</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => handleConfirmAssignment(item.id)}
+                          className="h-6 text-[10px] px-2.5 bg-amber-600 hover:bg-amber-700 text-white shrink-0"
+                        >
+                          Confirm Assignment
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Supporting Transcript Evidence */}
+                    {item.supportingEvidence && (
+                      <div className="text-[11px] bg-slate-50 p-2.5 rounded-lg border border-slate-200/80 text-slate-700 flex items-start gap-2">
+                        <FileText className="w-3.5 h-3.5 text-sky-600 shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1">
+                          <span className="font-bold text-slate-500 uppercase text-[9px] block">Supporting Evidence Snippet</span>
+                          <span className="italic text-slate-800">&ldquo;{item.supportingEvidence}&rdquo;</span>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Action Item Notes */}
                     {item.notes && item.notes.length > 0 && (

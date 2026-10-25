@@ -40,7 +40,7 @@ export const DocumentPreviewDrawer: React.FC<DocumentPreviewDrawerProps> = ({
   onOpenOwnerProfile,
 }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'content' | 'clauses' | 'summary' | 'versions' | 'permissions' | 'access_history'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'tables' | 'charts' | 'clauses' | 'summary' | 'versions' | 'permissions' | 'access_history'>('content');
 
   if (!isOpen || !doc) return null;
 

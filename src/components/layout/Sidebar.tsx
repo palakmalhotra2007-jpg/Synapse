@@ -13,9 +13,15 @@ import {
   ChevronRight,
   Shield,
   Bot,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/lib/firebase/authContext';
 import { cn } from '@/lib/utils';
+
+export interface SidebarProps {
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
 
 const navItems = [
   {
@@ -50,25 +56,24 @@ const navItems = [
   },
 ];
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile }) => {
   const pathname = usePathname();
   const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  return (
-    <aside
-      className={cn(
-        'relative flex flex-col h-screen border-r border-slate-200/80 bg-white transition-all duration-300 z-40 select-none shrink-0 shadow-xs',
-        isCollapsed ? 'w-20' : 'w-64'
-      )}
-    >
+  const sidebarContent = (isMobile: boolean = false) => (
+    <div className="flex flex-col h-full bg-white select-none">
       {/* Brand Header */}
       <div className="flex items-center justify-between h-16 px-5 border-b border-slate-100">
-        <Link href="/" className="flex items-center gap-3 overflow-hidden">
+        <Link
+          href="/"
+          onClick={() => isMobile && onCloseMobile?.()}
+          className="flex items-center gap-3 overflow-hidden"
+        >
           <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white shrink-0 shadow-xs">
             <Shield className="w-5 h-5" />
           </div>
-          {!isCollapsed && (
+          {(!isCollapsed || isMobile) && (
             <div className="flex flex-col">
               <span className="font-extrabold text-base text-slate-900 tracking-tight">
                 SYNAPSE
@@ -80,14 +85,23 @@ export const Sidebar: React.FC = () => {
           )}
         </Link>
 
-        {/* Collapse Toggle */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
+        {isMobile ? (
+          <button
+            onClick={onCloseMobile}
+            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+            title="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        ) : (
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        )}
       </div>
 
       {/* Nav Menu */}
@@ -100,6 +114,7 @@ export const Sidebar: React.FC = () => {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => isMobile && onCloseMobile?.()}
               className={cn(
                 'flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 group relative text-xs font-semibold',
                 isActive
@@ -113,12 +128,12 @@ export const Sidebar: React.FC = () => {
                   isActive ? 'text-sky-600' : 'text-slate-400 group-hover:text-slate-600'
                 )}
               />
-              {!isCollapsed && (
+              {(!isCollapsed || isMobile) && (
                 <span className="tracking-wide text-xs">{item.name}</span>
               )}
 
-              {/* Collapsed Tooltip */}
-              {isCollapsed && (
+              {/* Collapsed Tooltip (Desktop only) */}
+              {!isMobile && isCollapsed && (
                 <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-900 text-white text-xs rounded-lg font-medium shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap border border-slate-800">
                   {item.name}
                 </div>
@@ -128,8 +143,8 @@ export const Sidebar: React.FC = () => {
         })}
       </nav>
 
-      {/* Clean User Footer (No persistent Vault status / clearance card) */}
-      {!isCollapsed && user && (
+      {/* Clean User Footer */}
+      {(!isCollapsed || isMobile) && user && (
         <div className="p-3.5 mx-3 mb-4 rounded-2xl border border-slate-100 bg-slate-50 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-600 to-blue-700 text-white flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
             {user.displayName ? user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2) : 'CS'}
@@ -140,6 +155,33 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
       )}
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Persistent Sidebar */}
+      <aside
+        className={cn(
+          'relative hidden md:flex flex-col h-screen border-r border-slate-200/80 bg-white transition-all duration-300 z-40 select-none shrink-0 shadow-xs',
+          isCollapsed ? 'w-20' : 'w-64'
+        )}
+      >
+        {sidebarContent(false)}
+      </aside>
+
+      {/* Mobile Drawer Overlay */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <div
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
+            onClick={onCloseMobile}
+          />
+          <div className="relative w-72 max-w-[80vw] h-full bg-white shadow-2xl flex flex-col z-50 animate-in slide-in-from-left duration-200">
+            {sidebarContent(true)}
+          </div>
+        </div>
+      )}
+    </>
   );
 };

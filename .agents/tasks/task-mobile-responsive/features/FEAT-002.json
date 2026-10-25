@@ -1,0 +1,35 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Make all auth modals, character components, and document/employee drawers fully responsive for mobile devices",
+  "status": "pending",
+  "steps": [
+    "1. Update AuthPortal (src/components/auth/AuthPortal.tsx): ensure form container is max-w-md and p-4 on mobile, p-6 sm:p-8 on desktop. Stack demo account buttons as single column on mobile (grid-cols-1), 2 columns on sm+ (sm:grid-cols-2). Ensure all input fields and buttons have adequate touch targets (min-h-11, py-2.5 or more)",
+    "2. Update FaceRecognitionModal (src/components/auth/FaceRecognitionModal.tsx): set Modal maxWidth='lg' but add responsive padding. Video viewport should be h-[340px] on mobile, h-[380px] sm:h-[400px] on larger screens. Button row should flex-wrap on mobile. 'Upload Photo' and action buttons stack vertically on mobile",
+    "3. Update PasskeyModal (src/components/auth/PasskeyModal.tsx): already uses Modal maxWidth='md', ensure button rows flex-wrap. Text should be readable at mobile sizes. Ensure 'Register Biometric Passkey' button text is shortened on mobile: use responsive text or split into two lines",
+    "4. Update RiggedAnimeCharacter (src/components/character/RiggedAnimeCharacter.tsx): wrap canvas container with responsive width/height. Currently fixed at 558x1263 aspect ratio. Add responsive container classes: on mobile w-24 h-48 sm:w-32 sm:h-64 md:w-40 md:h-80, maintain aspect ratio with object-contain. Reduce rendering canvas size on mobile to save performance",
+    "5. Update LiveCharacter (src/components/character/LiveCharacter.tsx): speech bubble max-w-xs already present, ensure on mobile it's max-w-[200px] to avoid overflow. Character container currently w-32 h-64 sm:w-36 sm:h-72, verify these are appropriate. Minimize button and AI Assistant button should have adequate spacing and touch targets",
+    "6. Update AICompanionCharacter (src/components/character/AICompanionCharacter.tsx): floating expanded modal is w-80 sm:w-96, ensure it doesn't overflow on narrow screens. Add max-w-[calc(100vw-2rem)] constraint. Action cards should remain tappable with adequate padding",
+    "7. Update DocumentUploadModal (src/components/documents/DocumentUploadModal.tsx): already uses Modal maxWidth='lg'. Ensure 6-stage progress grid is grid-cols-3 on mobile, sm:grid-cols-6 on desktop (already present). Form fields should stack on mobile: grid-cols-1 sm:grid-cols-3 for vault/classification/clearance row. FileDropzone touch target should be large",
+    "8. Update DocumentPreviewDrawer (src/components/documents/DocumentPreviewDrawer.tsx): drawer is max-w-3xl. On mobile (<768px) it should be full-screen width (max-w-full). Tab navigation should scroll horizontally on mobile (overflow-x-auto already present). Content area padding should reduce on mobile: p-4 on mobile, p-6 on desktop. Action buttons in header should stack or reduce size on mobile",
+    "9. Update EmployeeProfileDrawer (src/components/employees/EmployeeProfileDrawer.tsx): max-w-2xl becomes max-w-full on mobile. Tab bar and content padding adjust same as DocumentPreviewDrawer. Contact info grid should be grid-cols-1 on mobile, sm:grid-cols-2 on larger screens"
+  ],
+  "acceptance_criteria": [
+    "AuthPortal form fits on 375px screen without horizontal scroll, demo buttons stack vertically",
+    "FaceRecognitionModal video viewport is appropriately sized on mobile without overflow",
+    "Character components (RiggedAnimeCharacter, LiveCharacter) scale down on mobile screens and remain interactive",
+    "DocumentUploadModal form fields stack appropriately on mobile",
+    "DocumentPreviewDrawer and EmployeeProfileDrawer are full-width on mobile screens",
+    "All buttons and interactive elements in modals/drawers meet 44x44px touch target requirement"
+  ],
+  "verification": [
+    "Run 'npm run build' to check for TypeScript errors",
+    "Test AuthPortal at 375px: form should fit, buttons should be tappable",
+    "Test FaceRecognitionModal at 375px: video area should not overflow, buttons should wrap",
+    "Test character visibility at 375px: LiveCharacter should be smaller but visible and interactive",
+    "Test DocumentPreviewDrawer at 375px: should be full-width, tabs should scroll horizontally",
+    "Test all modals at 375px, 768px, and 1024px widths to ensure responsive behavior"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -51,7 +51,7 @@ export interface DocumentItem {
   id: string;
   name: string;
   size: string;
-  type: 'pdf' | 'docx' | 'csv' | 'txt' | 'md' | 'json' | 'xlsx' | 'img';
+  type: 'pdf' | 'docx' | 'csv' | 'txt' | 'md' | 'json' | 'xlsx' | 'pptx' | 'img';
   uploadedAt: string;
   updatedAt?: string;
   teamId?: TeamId | 'all';
@@ -64,6 +64,8 @@ export interface DocumentItem {
   securityLevel: DocumentSecurityLevel;
   status: DocumentProcessingStatus;
   pageCount?: number;
+  slideCount?: number;
+  sheetCount?: number;
   wordCount?: number;
   content: string;
   summary?: string;
@@ -72,6 +74,12 @@ export interface DocumentItem {
   keyClauses?: DocumentKeyClause[];
   versions?: DocumentVersion[];
   accessHistory?: DocumentAccessHistoryEntry[];
+  chunks?: any[];
+  tables?: any[];
+  charts?: any[];
+  images?: any[];
+  sections?: any[];
+  fileBase64?: string;
   permissions?: {
     allowedRoles: UserRbacRole[];
     allowedVaults: VaultId[];

@@ -12,6 +12,7 @@ import {
   Users,
   Database,
   Sparkles,
+  Menu,
 } from 'lucide-react';
 import { useAuth } from '@/lib/firebase/authContext';
 import { Button } from '@/components/ui/Button';
@@ -19,7 +20,11 @@ import { Modal } from '@/components/ui/Modal';
 import { EmployeeProfileDrawer } from '@/components/employees/EmployeeProfileDrawer';
 import { cn } from '@/lib/utils';
 
-export const Navbar: React.FC = () => {
+export interface NavbarProps {
+  onToggleMobileMenu?: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu }) => {
   const { user, session, signOut, executionMode, setExecutionMode } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -80,13 +85,21 @@ export const Navbar: React.FC = () => {
   return (
     <>
       <header className="h-16 border-b border-slate-200/80 bg-white/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 select-none text-left shadow-2xs">
-        {/* Left Section: Active Team & Global Mode Switcher */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-100 text-xs font-semibold text-sky-700">
-            <span className="w-2 h-2 rounded-full bg-sky-500" />
-            <span>{user?.teamName || 'Executive Ops'}</span>
-            <span className="text-slate-300">•</span>
-            <span className="text-slate-500 text-[11px]">{user?.department || 'Operations'}</span>
+        {/* Left Section: Mobile Menu Button & Active Team Badge */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={onToggleMobileMenu}
+            className="md:hidden p-2 text-slate-500 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors"
+            title="Toggle Menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-sky-50 border border-sky-100 text-xs font-semibold text-sky-700 max-w-[200px] sm:max-w-none">
+            <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
+            <span className="truncate">{user?.teamName || 'Executive Ops'}</span>
+            <span className="text-slate-300 hidden sm:inline">•</span>
+            <span className="text-slate-500 text-[11px] hidden sm:inline">{user?.department || 'Operations'}</span>
           </div>
         </div>
 

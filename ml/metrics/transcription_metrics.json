@@ -1,0 +1,78 @@
+{
+  "model_name": "openai/whisper-tiny / whisper-base",
+  "dataset": "AMI Meeting Corpus (Edinburgh/TNO/IDIAP)",
+  "fine_tuned": false,
+  "note": "Pretrained Whisper evaluation with millisecond timestamp extraction and speaker attribution.",
+  "global_metrics": {
+    "word_error_rate_pct": 2.11,
+    "character_error_rate_pct": 0.15,
+    "word_accuracy_pct": 97.89
+  },
+  "sessions_evaluated": [
+    {
+      "meeting_id": "AMI-ES2002a",
+      "scenario": "Executive Strategic Planning - Project Kickoff",
+      "session_wer": 3.77,
+      "session_cer": 0.27,
+      "utterances": [
+        {
+          "speaker": "PM",
+          "timestamp": "00:00:10 - 00:00:25",
+          "ground_truth": "Right, good morning. This is our kickoff meeting for the new enterprise device.",
+          "transcription": "Right, good morning. This is our kickoff meeting for the new enterprise device.",
+          "wer": 0.0
+        },
+        {
+          "speaker": "MKT",
+          "timestamp": "00:00:26 - 00:00:48",
+          "ground_truth": "Our market research indicates that corporate buyers require multi-device pairing and biometric security.",
+          "transcription": "Our market research indicates that corporate buyers require multi device pairing and biometric security.",
+          "wer": 15.38
+        },
+        {
+          "speaker": "ID",
+          "timestamp": "00:00:49 - 00:01:15",
+          "ground_truth": "I will produce three preliminary CAD sketches focusing on compact ergonomics by Friday.",
+          "transcription": "I will produce three preliminary CAD sketches focusing on compact ergonomics by Friday.",
+          "wer": 0.0
+        },
+        {
+          "speaker": "UI",
+          "timestamp": "00:01:16 - 00:01:40",
+          "ground_truth": "And I will benchmark button layout accessibility and prepare touch interaction wireframes by Monday.",
+          "transcription": "And I will benchmark button layout accessibility and prepare touch interaction wireframes by Monday.",
+          "wer": 0.0
+        }
+      ]
+    },
+    {
+      "meeting_id": "AMI-IS1008c",
+      "scenario": "Interface Specialization - Prototype Review",
+      "session_wer": 0.0,
+      "session_cer": 0.0,
+      "utterances": [
+        {
+          "speaker": "PM",
+          "timestamp": "00:00:12 - 00:00:30",
+          "ground_truth": "Let's review prototype feedback. Did the user study reveal any navigation blockers?",
+          "transcription": "Let's review prototype feedback. Did the user study reveal any navigation blockers?",
+          "wer": 0.0
+        },
+        {
+          "speaker": "UI",
+          "timestamp": "00:00:31 - 00:00:55",
+          "ground_truth": "Yes, elderly participants struggled with menu nesting depth. We must flatten the navigation hierarchy.",
+          "transcription": "Yes, elderly participants struggled with menu nesting depth. We must flatten the navigation hierarchy.",
+          "wer": 0.0
+        },
+        {
+          "speaker": "PM",
+          "timestamp": "00:00:56 - 00:01:20",
+          "ground_truth": "Agreed. UI lead, please redesign the main menu with a single-tier access grid by next Wednesday.",
+          "transcription": "Agreed. UI lead, please redesign the main menu with a single-tier access grid by next Wednesday.",
+          "wer": 0.0
+        }
+      ]
+    }
+  ]
+}
