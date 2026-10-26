@@ -41,7 +41,7 @@ if ML_ROOT not in sys.path:
 
 from ml.document_fraud_detection.source.document_ocr_extraction_service import DocumentOCRVerifier
 
-CHECKPOINT_DIR = os.path.join(ML_ROOT, "fraud_checkpoints")
+CHECKPOINT_DIR = os.path.join(os.path.dirname(BASE_DIR), "trained_models")
 CLASSIFIER_CKPT = os.path.join(CHECKPOINT_DIR, "fraud_classifier_best.pt")
 LOCALIZER_CKPT = os.path.join(CHECKPOINT_DIR, "tamper_localizer_best.pt")
 

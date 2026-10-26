@@ -33,7 +33,7 @@ from ml.document_fraud_detection.source.fraud_detection_inference_engine import 
 from ml.facial_recognition.source.face_recognition_inference_engine import get_biometric_engine
 from ml.retrieval_augmented_generation.source.document_ingestion_service import DocumentIngestionEngine
 from ml.retrieval_augmented_generation.source.hybrid_rag_service import get_rag_engine
-from ml.meeting_analysis.source.data_analyzer import TabularDataAnalyzer
+from ml.shared.utilities.tabular_data_analytical_engine import TabularDataAnalyzer
 
 # Track server launch timestamp
 START_TIME = time.time()

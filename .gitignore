@@ -29,30 +29,31 @@ __pycache__/
 # ML Models & Checkpoints (downloaded from HuggingFace, not stored in Git)
 ml/checkpoints/
 ml/fraud_checkpoints/
-ml/facial_recognition/models/*.pt
-ml/facial_recognition/models/*.json
-ml/models_cache/
+ml/facial_recognition/trained_models/*.pt
+ml/facial_recognition/trained_models/*.json
+ml/meeting_analysis/trained_models/
+ml/document_fraud_detection/trained_models/
+ml/shared/models_cache/
 *.pt
 *.safetensors
 *.bin
 *.onnx
 
 # ML Datasets (use preparation scripts to regenerate)
-ml/fraud_data/dataset/
-ml/fraud_data/*.parquet
+ml/document_fraud_detection/datasets/dataset/
+ml/document_fraud_detection/datasets/*.parquet
 ml/facial_recognition/datasets/
-ml/data/
+ml/meeting_analysis/datasets/
 ml/.cache/
 
-# Keep directory structure but ignore contents
-!ml/data/.gitkeep
-!ml/facial_recognition/datasets/.gitkeep
-!ml/fraud_data/dataset/.gitkeep
-
 # Training outputs
-ml/metrics/*.png
-ml/fraud_metrics/*.png
-ml/fraud_metrics/localization_samples/*.png
+ml/meeting_analysis/metrics/*.png
+ml/document_fraud_detection/metrics/*.png
+ml/document_fraud_detection/metrics/localization_samples/*.png
+
+# Workflow artifacts
+.agents/
+.worktrees/
 
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
