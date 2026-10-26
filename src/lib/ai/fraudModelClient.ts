@@ -12,7 +12,7 @@ export async function executeDocumentFraudAIModel(
   doc: DocumentItem,
   imageBase64?: string
 ): Promise<DocumentFraudReport> {
-  const pythonScript = path.resolve(process.cwd(), 'ml', 'document_fraud_detection', 'source', 'fraud_detection_inference_engine.py');
+  const pythonScript = path.resolve(process.cwd(), 'ml', 'document_fraud_detection', 'fraud_analysis', 'fraud_detection_inference_engine.py');
 
   return new Promise<DocumentFraudReport>((resolve) => {
     let outputData = '';

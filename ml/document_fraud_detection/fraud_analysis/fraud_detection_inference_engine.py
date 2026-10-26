@@ -39,7 +39,7 @@ if PROJECT_ROOT not in sys.path:
 if ML_ROOT not in sys.path:
     sys.path.insert(0, ML_ROOT)
 
-from ml.document_fraud_detection.source.document_ocr_extraction_service import DocumentOCRVerifier
+from ml.document_fraud_detection.fraud_analysis.document_ocr_extraction_service import DocumentOCRVerifier
 
 CHECKPOINT_DIR = os.path.join(os.path.dirname(BASE_DIR), "trained_models")
 CLASSIFIER_CKPT = os.path.join(CHECKPOINT_DIR, "fraud_classifier_best.pt")
@@ -47,21 +47,34 @@ LOCALIZER_CKPT = os.path.join(CHECKPOINT_DIR, "tamper_localizer_best.pt")
 
 if HAS_TORCH:
     class DocumentFraudClassifier(nn.Module):
+        """
+        ResNet-18 based binary classifier for document authenticity detection.
+        Outputs two classes: 0 = Authentic, 1 = Tampered/Fraudulent
+        """
         def __init__(self):
             super().__init__()
+            # Use ResNet-18 as feature extraction backbone
             self.backbone = models.resnet18(weights=None)
             in_features = self.backbone.fc.in_features
+            
+            # Replace final layer with custom fraud classification head
+            # Includes dropout for regularization to prevent overfitting
             self.backbone.fc = nn.Sequential(
-                nn.Dropout(0.3),
+                nn.Dropout(0.3),  # 30% dropout to reduce overfitting
                 nn.Linear(in_features, 128),
                 nn.ReLU(),
                 nn.Dropout(0.2),
-                nn.Linear(128, 2)
+                nn.Linear(128, 2)  # Binary output: authentic vs tampered
             )
+        
         def forward(self, x):
             return self.backbone(x)
 
     class DoubleConv(nn.Module):
+        """
+        Standard U-Net double convolution block with batch normalization.
+        Used for both encoding and decoding paths in the segmentation network.
+        """
         def __init__(self, in_ch, out_ch):
             super().__init__()
             self.net = nn.Sequential(
@@ -72,34 +85,48 @@ if HAS_TORCH:
                 nn.BatchNorm2d(out_ch),
                 nn.ReLU(inplace=True)
             )
+        
         def forward(self, x):
             return self.net(x)
 
     class TamperLocalizationUNet(nn.Module):
+        """
+        U-Net architecture for pixel-accurate tamper region localization.
+        Encoder-decoder structure with skip connections to preserve spatial details.
+        Outputs a binary mask where white pixels indicate tampered regions.
+        """
         def __init__(self):
             super().__init__()
-            self.inc = DoubleConv(3, 32)
+            # Encoder path (downsampling)
+            self.inc = DoubleConv(3, 32)  # Initial convolution on RGB input
             self.down1 = nn.Sequential(nn.MaxPool2d(2), DoubleConv(32, 64))
             self.down2 = nn.Sequential(nn.MaxPool2d(2), DoubleConv(64, 128))
             self.down3 = nn.Sequential(nn.MaxPool2d(2), DoubleConv(128, 256))
             self.bottleneck = nn.Sequential(nn.MaxPool2d(2), DoubleConv(256, 256))
             
+            # Decoder path (upsampling) with skip connections
             self.up1 = nn.ConvTranspose2d(256, 256, kernel_size=2, stride=2)
-            self.conv_up1 = DoubleConv(512, 128)
+            self.conv_up1 = DoubleConv(512, 128)  # 512 = 256 from up + 256 from skip
             self.up2 = nn.ConvTranspose2d(128, 128, kernel_size=2, stride=2)
-            self.conv_up2 = DoubleConv(256, 64)
+            self.conv_up2 = DoubleConv(256, 64)   # 256 = 128 from up + 128 from skip
             self.up3 = nn.ConvTranspose2d(64, 64, kernel_size=2, stride=2)
-            self.conv_up3 = DoubleConv(128, 32)
+            self.conv_up3 = DoubleConv(128, 32)   # 128 = 64 from up + 64 from skip
             self.up4 = nn.ConvTranspose2d(32, 32, kernel_size=2, stride=2)
-            self.conv_up4 = DoubleConv(64, 32)
+            self.conv_up4 = DoubleConv(64, 32)    # 64 = 32 from up + 32 from skip
+            
+            # Final 1x1 convolution to produce binary segmentation mask
             self.outc = nn.Conv2d(32, 1, kernel_size=1)
             
         def forward(self, x):
+            # Encoder: progressively downsample and extract features
             x1 = self.inc(x)
             x2 = self.down1(x1)
             x3 = self.down2(x2)
             x4 = self.down3(x3)
             b = self.bottleneck(x4)
+            
+            # Decoder: upsample and concatenate with encoder features (skip connections)
+            # Skip connections help preserve fine-grained spatial information
             u1 = self.up1(b)
             d1 = self.conv_up1(torch.cat([u1, x4], dim=1))
             u2 = self.up2(d1)
@@ -108,6 +135,8 @@ if HAS_TORCH:
             d3 = self.conv_up3(torch.cat([u3, x2], dim=1))
             u4 = self.up4(d3)
             d4 = self.conv_up4(torch.cat([u4, x1], dim=1))
+            
+            # Apply sigmoid to get values between 0 and 1 (probability of tampering)
             return torch.sigmoid(self.outc(d4))
 else:
     class DocumentFraudClassifier:

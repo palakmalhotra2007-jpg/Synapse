@@ -12,8 +12,8 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 
-from ml.facial_recognition.source.face_detection_preprocessing import FacePreprocessor
-from ml.facial_recognition.source.face_recognition_model_architectures import AntiSpoofNet, FaceEmbeddingNet
+from ml.facial_recognition.recognition_service.face_detection_preprocessing import FacePreprocessor
+from ml.facial_recognition.recognition_service.face_recognition_model_architectures import AntiSpoofNet, FaceEmbeddingNet
 
 MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "trained_models")
 ANTISPOOF_WEIGHTS = os.path.join(MODELS_DIR, "antispoof_model.pt")

@@ -29,10 +29,10 @@ ML_DIR = os.path.join(BASE_DIR, "ml")
 if ML_DIR not in sys.path:
     sys.path.insert(0, ML_DIR)
 
-from ml.document_fraud_detection.source.fraud_detection_inference_engine import FraudDetectionEnsemble
-from ml.facial_recognition.source.face_recognition_inference_engine import get_biometric_engine
-from ml.retrieval_augmented_generation.source.document_ingestion_service import DocumentIngestionEngine
-from ml.retrieval_augmented_generation.source.hybrid_rag_service import get_rag_engine
+from ml.document_fraud_detection.fraud_analysis.fraud_detection_inference_engine import FraudDetectionEnsemble
+from ml.facial_recognition.recognition_service.face_recognition_inference_engine import get_biometric_engine
+from ml.retrieval_augmented_generation.rag_service.document_ingestion_service import DocumentIngestionEngine
+from ml.retrieval_augmented_generation.rag_service.hybrid_rag_service import get_rag_engine
 from ml.shared.utilities.tabular_data_analytical_engine import TabularDataAnalyzer
 
 # Track server launch timestamp
