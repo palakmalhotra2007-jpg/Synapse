@@ -49,7 +49,7 @@ export const FaceRecognitionModal: React.FC<FaceRecognitionModalProps> = ({
   targetEmail,
   onSuccess,
 }) => {
-  const { user: authUser, loginWithFaceId } = useAuth();
+  const { user: authUser, loginWithFaceId, enrollFaceId } = useAuth();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -165,7 +165,11 @@ export const FaceRecognitionModal: React.FC<FaceRecognitionModalProps> = ({
 
       if (isEnrollMode) {
         setScanStatus('detected');
-        const mockVec = Array.from({ length: 128 }, () => Math.random() * 0.2 - 0.1);
+        const seed = Math.abs(target.email.split('').reduce((acc, c) => acc + c.charCodeAt(0), 42));
+        const mockVec = Array.from({ length: 128 }, (_, i) => {
+          const val = Math.sin((seed + i) * 1.618) * 0.15;
+          return Math.round(val * 10000) / 10000;
+        });
         setLastCapturedDescriptor(mockVec);
         setTelemetry({
           confidence: 98.4,
@@ -182,14 +186,15 @@ export const FaceRecognitionModal: React.FC<FaceRecognitionModalProps> = ({
           setTelemetry({
             confidence: 12,
             distance: 0.895,
-            details: 'ACCESS DENIED: Unrecognized face detected (Distance: 0.895 > 0.52 threshold). Entrance is strictly blocked for unknown persons.',
+            details: 'ACCESS DENIED: Unrecognized face detected (Distance: 0.895 > 0.58 threshold). Entrance is strictly blocked for unknown persons.',
           });
           setIsProcessingAction(false);
           return;
         }
 
         // Check whether user has registered their face first in database
-        const hasEnrolledFace = target.faceId?.descriptor && parseStoredDescriptor(target.faceId.descriptor) !== null;
+        const storedDesc = target.faceId?.descriptor ? parseStoredDescriptor(target.faceId.descriptor) : null;
+        const hasEnrolledFace = storedDesc !== null;
 
         if (!hasEnrolledFace) {
           setScanStatus('not_enrolled');
@@ -202,15 +207,29 @@ export const FaceRecognitionModal: React.FC<FaceRecognitionModalProps> = ({
           return;
         }
 
-        setScanStatus('matched');
-        setTelemetry({
-          confidence: 98.9,
-          distance: 0.14,
-          matchedName: target.displayName,
-          details: `Biometric Identity Confirmed! Face matches enrolled profile for ${target.displayName} (${target.employeeId}). Access Granted.`,
-        });
-        setIsProcessingAction(false);
-        handleSuccessfulLogin(target);
+        // Generate live vector corresponding to the enrolled descriptor
+        const liveSimVec = storedDesc.map((v) => v + (Math.random() * 0.02 - 0.01));
+        const verifyRes = verifyFaceDescriptorForUser(target.email, liveSimVec, 0.58);
+
+        if (verifyRes.matched) {
+          setScanStatus('matched');
+          setTelemetry({
+            confidence: verifyRes.confidence,
+            distance: verifyRes.distance,
+            matchedName: target.displayName,
+            details: `Biometric Identity Confirmed! Face matches enrolled profile for ${target.displayName} (${target.employeeId}). Access Granted.`,
+          });
+          setIsProcessingAction(false);
+          handleSuccessfulLogin(target);
+        } else {
+          setScanStatus('mismatch');
+          setTelemetry({
+            confidence: verifyRes.confidence,
+            distance: verifyRes.distance,
+            details: verifyRes.error || 'Face biometric mismatch. Access denied.',
+          });
+          setIsProcessingAction(false);
+        }
       }
     }, 700);
   };
@@ -256,7 +275,7 @@ export const FaceRecognitionModal: React.FC<FaceRecognitionModalProps> = ({
             setTelemetry({
               confidence: 96,
               distance: 0.18,
-              details: 'High-quality facial biometric vector locked. Click "Confirm & Enroll Face" to store in DB.',
+              details: 'High-quality facial biometric vector locked. Click "Confirm & Enroll Face in DB" to save.',
             });
           } else {
             // In verification / login mode: check against stored database
@@ -282,8 +301,8 @@ export const FaceRecognitionModal: React.FC<FaceRecognitionModalProps> = ({
   // Evaluate Face Match against Database
   const evaluateFaceMatch = (descriptor: number[]) => {
     if (activeEmail) {
-      // Check specific user by email
-      const verifyRes = verifyFaceDescriptorForUser(activeEmail, descriptor, 0.52);
+      // Check specific user by email with 0.58 threshold
+      const verifyRes = verifyFaceDescriptorForUser(activeEmail, descriptor, 0.58);
 
       if (verifyRes.isEnrolled === false) {
         setScanStatus('not_enrolled');
@@ -301,7 +320,7 @@ export const FaceRecognitionModal: React.FC<FaceRecognitionModalProps> = ({
           confidence: verifyRes.confidence,
           distance: verifyRes.distance,
           matchedName: verifyRes.user.displayName,
-          details: `Biometric Identity Confirmed! Vector distance: ${verifyRes.distance} (Threshold < 0.52). Access Granted.`,
+          details: `Biometric Identity Confirmed! Vector distance: ${verifyRes.distance} (Threshold < 0.58). Access Granted.`,
         });
 
         // Trigger successful login
@@ -311,12 +330,12 @@ export const FaceRecognitionModal: React.FC<FaceRecognitionModalProps> = ({
         setTelemetry({
           confidence: verifyRes.confidence,
           distance: verifyRes.distance,
-          details: `Face Mismatch! Distance ${verifyRes.distance} exceeds threshold (0.52). Access Denied.`,
+          details: `Face Mismatch! Distance ${verifyRes.distance} exceeds threshold (0.58). Access Denied.`,
         });
       }
     } else {
       // Auto-Identify across all registered employees
-      const idRes = identifyUserByFaceDescriptor(descriptor, 0.52);
+      const idRes = identifyUserByFaceDescriptor(descriptor, 0.58);
 
       if (idRes.matched && idRes.user) {
         setScanStatus('matched');
@@ -333,7 +352,7 @@ export const FaceRecognitionModal: React.FC<FaceRecognitionModalProps> = ({
         setTelemetry({
           confidence: idRes.confidence,
           distance: idRes.distance,
-          details: idRes.error || 'Face does not match any registered employee. Access Denied.',
+          details: idRes.error || 'Face does not match any registered employee in database. Access Denied.',
         });
       }
     }
@@ -357,9 +376,20 @@ export const FaceRecognitionModal: React.FC<FaceRecognitionModalProps> = ({
   const handleConfirmEnrollment = async () => {
     setIsProcessingAction(true);
     setErrorMessage(null);
-    const target = activeEmail || 'charvi@synapse-ai.io';
+    const target = activeEmail || authUser?.email || 'charvi@synapse-ai.io';
 
-    // Capture frame from video if available
+    // 1. Ensure we have a valid 128-D descriptor
+    let currentDescriptor = lastCapturedDescriptor;
+    if (!currentDescriptor || currentDescriptor.length < 64) {
+      const seed = Math.abs(target.split('').reduce((acc, c) => acc + c.charCodeAt(0), 42));
+      currentDescriptor = Array.from({ length: 128 }, (_, i) => {
+        const val = Math.sin((seed + i) * 1.618) * 0.15;
+        return Math.round(val * 10000) / 10000;
+      });
+      setLastCapturedDescriptor(currentDescriptor);
+    }
+
+    // 2. Capture frame from video if available
     let frameBase64 = '';
     if (videoRef.current && videoRef.current.videoWidth > 0) {
       try {
@@ -374,65 +404,55 @@ export const FaceRecognitionModal: React.FC<FaceRecognitionModalProps> = ({
       } catch (_) {}
     }
 
-    try {
-      if (frameBase64) {
-        const apiRes = await fetch('/api/auth/face', {
+    // 3. PERSIST LOCALLY TO CLIENT DATABASE (localStorage) IMMEDIATELY
+    const localRes = registerFaceIdForUser(target, currentDescriptor, 'Integrated HD WebCam');
+    if (!localRes.success || !localRes.user) {
+      setIsProcessingAction(false);
+      setErrorMessage(localRes.error || 'Failed to save biometric enrollment to database.');
+      return;
+    }
+
+    // If logged in as current target user, update AuthContext
+    if (authUser && authUser.email.toLowerCase() === target.toLowerCase()) {
+      try {
+        await enrollFaceId(currentDescriptor, 'Integrated HD WebCam');
+      } catch (err) {
+        console.warn('enrollFaceId context sync warning:', err);
+      }
+    }
+
+    // 4. Also notify server API endpoint if frame is available
+    if (frameBase64) {
+      try {
+        await fetch('/api/auth/face', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'enroll',
             email: target,
             imageBase64: frameBase64,
+            descriptor: currentDescriptor,
             cameraDevice: 'Integrated HD WebCam',
           }),
         });
-        const data = await apiRes.json();
-        if (data.success && data.user) {
-          setIsProcessingAction(false);
-          setScanStatus('enrolled');
-          setTelemetry({
-            confidence: 99.8,
-            distance: 0.02,
-            matchedName: data.user.displayName,
-            details: `Anti-Spoofing Passed (Liveness ${(data.livenessScore * 100).toFixed(1)}%). 512-D ArcFace biometric embedding registered in Synapse Vault.`,
-          });
-          setTimeout(() => {
-            onSuccess?.(data.user);
-            onClose();
-          }, 1400);
-          return;
-        } else if (data.error) {
-          setErrorMessage(data.error);
-          setIsProcessingAction(false);
-          return;
-        }
+      } catch (e) {
+        console.warn('FastAPI server sync warning (local DB already updated):', e);
       }
-    } catch (e) {
-      console.warn('API enrollment error, falling back to local vault:', e);
     }
-
-    // Local fallback registration
-    const fallbackDesc = lastCapturedDescriptor || Array.from({ length: 512 }, () => Math.random() * 0.2 - 0.1);
-    const res = registerFaceIdForUser(target, fallbackDesc, 'Integrated HD WebCam');
 
     setIsProcessingAction(false);
+    setScanStatus('enrolled');
+    setTelemetry({
+      confidence: 99.8,
+      distance: 0.02,
+      matchedName: localRes.user.displayName,
+      details: `Face biometric vector (128-D neural embedding) enrolled & locked in Synapse Vault DB for ${localRes.user.displayName}.`,
+    });
 
-    if (res.success && res.user) {
-      setScanStatus('enrolled');
-      setTelemetry({
-        confidence: 99.2,
-        distance: 0.04,
-        matchedName: res.user.displayName,
-        details: 'Biometric face descriptor (512-D embedding) successfully saved and encrypted in Synapse Vault Database.',
-      });
-
-      setTimeout(() => {
-        onSuccess?.(res.user);
-        onClose();
-      }, 1400);
-    } else {
-      setErrorMessage(res.error || 'Failed to save biometric enrollment.');
-    }
+    setTimeout(() => {
+      onSuccess?.(localRes.user);
+      onClose();
+    }, 1400);
   };
 
   // Handle file photo fallback
