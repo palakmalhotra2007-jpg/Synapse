@@ -14,8 +14,14 @@ import re
 from typing import List, Dict, Any, Optional, Tuple
 
 import numpy as np
-import torch
-import torch.nn.functional as F
+try:
+    import torch
+    import torch.nn.functional as F
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+    torch = None
+    F = None
 from rank_bm25 import BM25Okapi
 
 
@@ -29,11 +35,15 @@ class HybridRAGEngine:
         self.chunks: List[Dict[str, Any]] = []
         self.tokenized_corpus: List[List[str]] = []
         self.bm25: Optional[BM25Okapi] = None
-        self.embeddings: Optional[torch.Tensor] = None
+        self.embeddings: Any = None
 
         # Fixed projection seed for reproducible deterministic lightweight dense vectors
-        torch.manual_seed(42)
-        self.projection_matrix = torch.randn(1000, self.embedding_dim)
+        if HAS_TORCH:
+            torch.manual_seed(42)
+            self.projection_matrix = torch.randn(1000, self.embedding_dim)
+        else:
+            rng = np.random.RandomState(42)
+            self.projection_matrix = rng.randn(1000, self.embedding_dim).astype(np.float32)
 
     def add_chunks(self, new_chunks: List[Dict[str, Any]]):
         """Indexes new chunks and rebuilds indices incrementally."""
@@ -51,27 +61,41 @@ class HybridRAGEngine:
             "the", "and", "for", "with", "what", "this", "that", "from", "are", "was", "has"
         }]
 
-    def _compute_dense_embedding(self, text: str) -> torch.Tensor:
+    def _compute_dense_embedding(self, text: str) -> Any:
         """
         Computes a normalized dense semantic representation vector.
         Uses token hash pooling projected through a fixed orthogonal subspace.
         """
         tokens = self._tokenize(text)
         if not tokens:
-            return torch.zeros(self.embedding_dim)
+            return torch.zeros(self.embedding_dim) if HAS_TORCH else np.zeros(self.embedding_dim, dtype=np.float32)
 
-        bag = torch.zeros(1000)
-        for token in tokens:
-            # Deterministic hash bucket
-            h = abs(hash(token)) % 1000
-            bag[h] += 1.0
+        if HAS_TORCH:
+            bag = torch.zeros(1000)
+            for token in tokens:
+                # Deterministic hash bucket
+                h = abs(hash(token)) % 1000
+                bag[h] += 1.0
 
-        # L2 normalize bag
-        bag = F.normalize(bag, p=2, dim=0)
-        # Project to dense dimension
-        dense = torch.matmul(bag, self.projection_matrix)
-        # Final L2 normalization
-        return F.normalize(dense, p=2, dim=0)
+            # L2 normalize bag
+            bag = F.normalize(bag, p=2, dim=0)
+            # Project to dense dimension
+            dense = torch.matmul(bag, self.projection_matrix)
+            # Final L2 normalization
+            return F.normalize(dense, p=2, dim=0)
+        else:
+            bag = np.zeros(1000, dtype=np.float32)
+            for token in tokens:
+                h = abs(hash(token)) % 1000
+                bag[h] += 1.0
+            norm_b = np.linalg.norm(bag)
+            if norm_b > 0:
+                bag /= norm_b
+            dense = np.dot(bag, self.projection_matrix)
+            norm_d = np.linalg.norm(dense)
+            if norm_d > 0:
+                dense /= norm_d
+            return dense
 
     def _rebuild_indices(self):
         if not self.chunks:
@@ -88,7 +112,10 @@ class HybridRAGEngine:
             emb_list.append(self._compute_dense_embedding(text))
 
         self.bm25 = BM25Okapi(self.tokenized_corpus)
-        self.embeddings = torch.stack(emb_list)
+        if HAS_TORCH:
+            self.embeddings = torch.stack(emb_list)
+        else:
+            self.embeddings = np.array(emb_list, dtype=np.float32)
 
     def query(
         self,
@@ -146,7 +173,10 @@ class HybridRAGEngine:
 
         # Phase 3: Dense Cosine Similarity
         cand_embs = self.embeddings[candidate_indices]  # (num_cand, dim)
-        cos_sims = torch.matmul(cand_embs, q_emb).cpu().numpy()  # (num_cand,)
+        if HAS_TORCH and hasattr(torch, "is_tensor") and torch.is_tensor(cand_embs):
+            cos_sims = torch.matmul(cand_embs, q_emb).cpu().numpy()  # (num_cand,)
+        else:
+            cos_sims = np.dot(cand_embs, q_emb)  # (num_cand,)
 
         # Phase 4: Hybrid Fusion & Multimodal Query Intent Boosting
         scored_candidates = []

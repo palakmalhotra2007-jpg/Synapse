@@ -20,8 +20,8 @@ from typing import List, Dict, Any, Optional
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-BASE_DIR = Path(__file__).resolve().parent
-MODELS_CACHE_DIR = BASE_DIR / "models_cache" / "flan-t5-small"
+BASE_DIR = Path(__file__).resolve().parent.parent.parent  # Go up to ml/
+MODELS_CACHE_DIR = BASE_DIR / "shared" / "models_cache" / "flan-t5-small"
 SUMMARIZER_CKPT = BASE_DIR / "checkpoints" / "flan_t5_summarizer"
 ACTION_CKPT = BASE_DIR / "checkpoints" / "flan_t5_action_extractor"
 
@@ -422,3 +422,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(json.dumps({"error": str(e)}), file=sys.stderr)
             sys.exit(1)
+hf auth login

@@ -818,7 +818,7 @@ Let me know if you would like me to extract specific terms or run deeper vector 
       extractedEntityName = doc.name.replace(/\.[^/.]+$/, '');
     }
 
-    // Extract dollar amounts
+    // Extract currency amounts (supporting USD, INR, Indian comma system 1,60,000 / 3,42,000 / 5,50,000)
     const extractAmount = (pattern: RegExp): number | null => {
       const m = docContent.match(pattern);
       if (m && m[1]) {
@@ -829,13 +829,26 @@ Let me know if you would like me to extract specific terms or run deeper vector 
       return null;
     };
 
-    const grandTotal = extractAmount(/(?:GRAND TOTAL|TOTAL AMOUNT DUE|TOTAL DUE|TOTAL):\s*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
-    const subtotal = extractAmount(/(?:SUBTOTAL|SUB-TOTAL|NET AMOUNT):\s*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
-    const tax = extractAmount(/(?:TAX|VAT|GST)(?:\s*\([0-9]+%\))?:\s*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
+    const grandTotal = extractAmount(/(?:TOTAL AMOUNT\s*(?:\(INR\))?|GRAND TOTAL|TOTAL AMOUNT DUE|TOTAL DUE|TOTAL):\s*(?:₹|RS\.?|INR|\$)?\s*([0-9,]+(?:\.[0-9]{2})?)/i);
+    const subtotal = extractAmount(/(?:SUBTOTAL|SUB-TOTAL|NET AMOUNT|TAXABLE VALUE):\s*(?:₹|RS\.?|INR|\$)?\s*([0-9,]+(?:\.[0-9]{2})?)/i);
+    
+    // Aggregate multi-tier taxes (e.g., CGST + SGST + IGST + VAT)
+    let aggregatedTax = 0;
+    let foundTaxLine = false;
+    const taxLineRegex = /(?:CGST|SGST|IGST|GST|TAX|VAT)(?:\s*\([0-9.]+%\))?:\s*(?:₹|RS\.?|INR|\$)?\s*([0-9,]+(?:\.[0-9]{2})?)/gi;
+    let taxMatch: RegExpExecArray | null;
+    while ((taxMatch = taxLineRegex.exec(docContent)) !== null) {
+      const val = parseFloat(taxMatch[1].replace(/,/g, ''));
+      if (!isNaN(val)) {
+        aggregatedTax += val;
+        foundTaxLine = true;
+      }
+    }
+    const tax = foundTaxLine ? aggregatedTax : extractAmount(/(?:TAX|VAT|GST)(?:\s*\([0-9.]+%\))?:\s*(?:₹|RS\.?|INR|\$)?\s*([0-9,]+(?:\.[0-9]{2})?)/i);
 
     // Fallback search for any prominent currency amount
     let fallbackAmount: number | null = null;
-    const amountRegex = /\$([0-9,]+(?:\.[0-9]{2})?)/g;
+    const amountRegex = /(?:₹|RS\.?|INR|\$)\s*([0-9,]+(?:\.[0-9]{2})?)/gi;
     let match: RegExpExecArray | null;
     const extractedNumbers: number[] = [];
     while ((match = amountRegex.exec(docContent)) !== null) {
@@ -883,17 +896,17 @@ Let me know if you would like me to extract specific terms or run deeper vector 
     const tamperIndicators: any[] = [];
     const forensicNotes: string[] = [];
 
-    if (!isMathBalanced && mathVariance > 5.0) {
-      overallTamperScore = 86;
+    if (!isMathBalanced && mathVariance > 1.0) {
+      overallTamperScore = 95;
       verdict = 'TAMPERED_FRAUD';
       tamperIndicators.push({
         type: 'AMOUNT_TAMPERING',
-        severity: 'HIGH',
-        description: `Mathematical mismatch: Subtotal ($${subtotal?.toLocaleString()}) + Tax ($${tax?.toLocaleString()}) does not match Grand Total ($${grandTotal?.toLocaleString()}) by $${mathVariance.toLocaleString()} delta.`,
+        severity: 'CRITICAL',
+        description: `Mathematical mismatch: Subtotal (${subtotal?.toLocaleString()}) + Tax (${tax?.toLocaleString()}) = ${(subtotal! + tax!).toLocaleString()}, but declared Grand Total is ${grandTotal?.toLocaleString()} (Discrepancy: ${mathVariance.toLocaleString()}).`,
         location: 'Page 1, Grand Total Line Item',
-        confidence: 97,
+        confidence: 99,
       });
-      forensicNotes.push(`Arithmetic failure: Declared grand total differs from reconciled line items by $${mathVariance.toFixed(2)}.`);
+      forensicNotes.push(`Arithmetic failure: Declared grand total differs from reconciled line items by ${mathVariance.toFixed(2)}.`);
     }
 
     if (isOffshoreIBAN && (docNameLower.includes('apex') || !isMathBalanced)) {

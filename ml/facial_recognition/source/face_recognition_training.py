@@ -12,9 +12,9 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
-from models_arch import AntiSpoofNet, FaceEmbeddingNet
+from ml.facial_recognition.source.face_recognition_model_architectures import AntiSpoofNet, FaceEmbeddingNet
 
-BASE_DIR = os.path.dirname(__file__)
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "datasets")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 ANTISPOOF_DIR = os.path.join(DATA_DIR, "antispoof")

@@ -4,10 +4,19 @@ Provides face detection, landmark alignment, and multi-attribute quality auditin
 """
 
 import os
-import cv2
+try:
+    import cv2
+except ImportError:
+    cv2 = None
 import numpy as np
-import torch
-from torchvision import transforms
+try:
+    import torch
+    from torchvision import transforms
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+    torch = None
+    transforms = None
 from PIL import Image
 
 CASCADE_PATH = os.path.join(os.path.dirname(__file__), "models", "haarcascade_frontalface_default.xml")
@@ -17,18 +26,28 @@ class FacePreprocessor:
     def __init__(self, target_size=(112, 112)):
         self.target_size = target_size
         self.cascade = None
-        if hasattr(cv2, "CascadeClassifier") and os.path.exists(CASCADE_PATH):
+        if cv2 is not None and hasattr(cv2, "CascadeClassifier") and os.path.exists(CASCADE_PATH):
             try:
                 self.cascade = cv2.CascadeClassifier(CASCADE_PATH)
             except Exception:
                 self.cascade = None
 
-        # PyTorch standard transformation for Face Models
-        self.transform = transforms.Compose([
-            transforms.Resize(self.target_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
+        if HAS_TORCH and transforms is not None:
+            # PyTorch standard transformation for Face Models
+            self.transform = transforms.Compose([
+                transforms.Resize(self.target_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+        else:
+            def _pil_transform(img: Image.Image):
+                resized = img.resize(self.target_size)
+                arr = np.array(resized, dtype=np.float32) / 255.0
+                mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+                std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+                norm = (arr - mean) / std
+                return np.transpose(norm, (2, 0, 1))
+            self.transform = _pil_transform
 
     def detect_face_bbox(self, image_np: np.ndarray):
         """

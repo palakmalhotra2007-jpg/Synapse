@@ -63,25 +63,28 @@ class DocumentOCRVerifier:
         due_date = parsed_dates[1] if len(parsed_dates) > 1 else (invoice_date + datetime.timedelta(days=30))
         
         # 5. Extract Amounts: Subtotal, Tax, Grand Total
-        subtotal = self._extract_amount(text, [r'sub[\s-]*total', r'net[\s-]*amount', r'items?[\s-]*total'])
-        tax_amount = self._extract_amount(text, [r'tax', r'vat', r'gst', r'sales[\s-]*tax'])
-        grand_total = self._extract_amount(text, [r'grand[\s-]*total', r'total[\s-]*amount', r'total[\s-]*due', r'total[\s-]*payable', r'\btotal\b'])
+        subtotal = self._extract_amount(text, [r'\b(?:sub[\s-]*total|subtotal|net[\s-]*amount|items?[\s-]*total)\b'])
+        tax_amount = self._extract_all_tax_amounts(text)
+        grand_total = self._extract_amount(text, [
+            r'\b(?:grand[\s-]*total|total[\s-]*amount|total[\s-]*due|total[\s-]*payable|amount[\s-]*due|balance[\s-]*due)\b',
+            r'\btotal\b'
+        ])
         
-        # If grand total missing but subtotal and tax found
-        if grand_total is None and subtotal is not None and tax_amount is not None:
-            grand_total = subtotal + tax_amount
-        elif grand_total is None:
-            all_numbers = [float(x.replace(",", "")) for x in re.findall(r'\$\s*(\d+(?:,\d{3})*(?:\.\d{2})?)', text)]
-            grand_total = max(all_numbers) if all_numbers else 250000.0
-            if subtotal is None:
-                subtotal = round(grand_total * 0.90, 2)
-            if tax_amount is None:
-                tax_amount = round(grand_total * 0.10, 2)
-        elif subtotal is None:
-            subtotal = round(grand_total * 0.90, 2)
-            tax_amount = round(grand_total * 0.10, 2) if tax_amount is None else tax_amount
-        elif tax_amount is None:
-            tax_amount = round(max(0.0, grand_total - subtotal), 2)
+        # Fallback search for grand total if not matched by label
+        if grand_total is None:
+            all_numbers = []
+            for m in re.finditer(r'[\$€£₹]?\s*(?:INR|Rs\.?)?\s*([0-9]{1,3}(?:,[0-9]{2,3})+(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)', text, re.IGNORECASE):
+                try:
+                    all_numbers.append(float(m.group(1).replace(",", "")))
+                except ValueError:
+                    pass
+            grand_total = max(all_numbers) if all_numbers else 0.0
+
+        if subtotal is None:
+            if grand_total and tax_amount > 0:
+                subtotal = round(max(0.0, grand_total - tax_amount), 2)
+            elif grand_total:
+                subtotal = grand_total
             
         # 6. RUN CONSISTENCY CHECKS
         discrepancies = []
@@ -169,16 +172,73 @@ class DocumentOCRVerifier:
             "discrepancy_count": len(discrepancies)
         }
         
-    def _extract_amount(self, text: str, patterns: List[str]) -> Optional[float]:
-        for pat in patterns:
-            match = re.search(rf'{pat}[\s.:$]*(\d+(?:,\d{3})*(?:\.\d{{2}})?)', text, re.IGNORECASE)
-            if match:
-                clean_str = match.group(1).replace(",", "")
-                try:
-                    return float(clean_str)
-                except ValueError:
-                    pass
+    def _extract_amount(self, text: str, patterns: List[str], exclude_patterns: Optional[List[str]] = None) -> Optional[float]:
+        """
+        Extracts monetary amount from text by scanning lines matching specified patterns.
+        Supports both Western (100,000.00) and South Asian / Indian (1,00,000.00 and 3,42,000.00)
+        number formatting, currency symbols ($ € £ ₹ INR Rs.), and excludes percentages.
+        """
+        for line in text.splitlines():
+            line_clean = line.strip()
+            if not line_clean:
+                continue
+
+            if exclude_patterns and any(re.search(ep, line_clean, re.IGNORECASE) for ep in exclude_patterns):
+                continue
+
+            for pat in patterns:
+                if re.search(pat, line_clean, re.IGNORECASE):
+                    # Match full numbers with optional Western or Indian commas and decimals
+                    matches = list(re.finditer(r'[\$€£₹]?\s*(?:INR|Rs\.?)?\s*([0-9]{1,3}(?:,[0-9]{2,3})+(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)', line_clean, re.IGNORECASE))
+                    valid_nums = []
+                    for m in matches:
+                        start, end = m.span()
+                        # Avoid percentage tokens like (10%) or (9%)
+                        if end < len(line_clean) and line_clean[end] == '%':
+                            continue
+                        clean_str = m.group(1).replace(",", "")
+                        try:
+                            val = float(clean_str)
+                            valid_nums.append(val)
+                        except ValueError:
+                            pass
+                    if valid_nums:
+                        return valid_nums[-1]
         return None
+
+    def _extract_all_tax_amounts(self, text: str) -> float:
+        """
+        Extracts and aggregates all individual tax lines (e.g. CGST, SGST, IGST, VAT).
+        """
+        total_tax = 0.0
+        tax_patterns = [r'\b(?:c?s?i?u?t?gst|vat|sales[\s-]*tax|service[\s-]*tax|tax)\b']
+        exclude_patterns = [r'\btax[\s-]*id\b', r'\bein\b', r'\btin\b', r'\bgstin\b']
+
+        matched_lines = set()
+        for line in text.splitlines():
+            line_clean = line.strip()
+            if not line_clean or line_clean in matched_lines:
+                continue
+
+            if any(re.search(ep, line_clean, re.IGNORECASE) for ep in exclude_patterns):
+                continue
+
+            if any(re.search(tp, line_clean, re.IGNORECASE) for tp in tax_patterns):
+                matches = list(re.finditer(r'[\$€£₹]?\s*(?:INR|Rs\.?)?\s*([0-9]{1,3}(?:,[0-9]{2,3})+(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)', line_clean, re.IGNORECASE))
+                valid_nums = []
+                for m in matches:
+                    start, end = m.span()
+                    if end < len(line_clean) and line_clean[end] == '%':
+                        continue
+                    clean_str = m.group(1).replace(",", "")
+                    try:
+                        valid_nums.append(float(clean_str))
+                    except ValueError:
+                        pass
+                if valid_nums:
+                    total_tax += valid_nums[-1]
+                    matched_lines.add(line_clean)
+        return round(total_tax, 2)
 
 if __name__ == "__main__":
     # Standalone verification test

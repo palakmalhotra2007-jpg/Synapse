@@ -6,13 +6,21 @@ Implements:
 """
 
 import math
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torchvision import models
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from torchvision import models
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+    torch = None
+    nn = None
+    F = None
+    models = None
 
-
-class ArcMarginProduct(nn.Module):
+if HAS_TORCH:
+    class ArcMarginProduct(nn.Module):
     """
     ArcFace: Additive Angular Margin Loss for Deep Face Recognition (Deng et al., CVPR 2019).
     Enforces intra-class compactness and inter-class discrepancy on the hypersphere.
@@ -158,3 +166,10 @@ class AntiSpoofNet(nn.Module):
             real_prob = float(probs[0, 1].item())
             is_real = real_prob >= 0.60
             return real_prob, is_real
+else:
+    class ArcMarginProduct:
+        pass
+    class FaceEmbeddingNet:
+        pass
+    class AntiSpoofNet:
+        pass

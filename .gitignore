@@ -1,56 +1,65 @@
+# Dependencies
 node_modules/
+.venv/
+
+# Next.js build outputs
 .next/
 out/
 dist/
 build/
 
+# Environment variables & secrets
 .env
 .env.local
 .env.*.local
 
+# Deployment
 .vercel/
-.venv/
+
+# Logs
 *.log
 *.tsbuildinfo
 
-# Python & ML Checkpoints (avoid GitHub 100MB limit)
+# Python cache & bytecode
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
-ml/models_cache/
-ml/fraud_checkpoints/*.pt
+
+# ML Models & Checkpoints (downloaded from HuggingFace, not stored in Git)
+ml/checkpoints/
+ml/fraud_checkpoints/
 ml/facial_recognition/models/*.pt
+ml/facial_recognition/models/*.json
+ml/models_cache/
 *.pt
+*.safetensors
 *.bin
 *.onnx
-# Dependencies and build files
-node_modules/
-.next/
 
-# Training datasets (permanently removed - use preparation scripts to regenerate)
+# ML Datasets (use preparation scripts to regenerate)
 ml/fraud_data/dataset/
+ml/fraud_data/*.parquet
 ml/facial_recognition/datasets/
-ml/data/processed/
-ml/data/raw/
+ml/data/
+ml/.cache/
 
-# Python cache
-__pycache__/
-*.pyc
+# Keep directory structure but ignore contents
+!ml/data/.gitkeep
+!ml/facial_recognition/datasets/.gitkeep
+!ml/fraud_data/dataset/.gitkeep
 
-# Local ML model cache
-ml/models_cache/
-# Synapse ML models and training data
-ml/**/*.safetensors
-ml/**/*.pt
-ml/models_cache/
-ml/fraud_data/dataset/
-ml/facial_recognition/datasets/
+# Training outputs
+ml/metrics/*.png
+ml/fraud_metrics/*.png
+ml/fraud_metrics/localization_samples/*.png
 
-# Python cache
-__pycache__/
-*.pyc
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
 
-# Secrets
-.env
-.env.local
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

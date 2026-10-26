@@ -100,7 +100,7 @@ export async function POST(req: Request) {
 
       // If still null, generate a deterministic 128-D embedding vector for this employee
       if (!extractedEmbedding) {
-        const seed = Math.abs(email.split('').reduce((acc, c) => acc + c.charCodeAt(0), 42));
+        const seed = Math.abs(email.split('').reduce((acc: number, c: string) => acc + c.charCodeAt(0), 42));
         extractedEmbedding = Array.from({ length: 128 }, (_, i) => {
           const val = Math.sin((seed + i) * 1.618) * 0.15;
           return Math.round(val * 10000) / 10000;
